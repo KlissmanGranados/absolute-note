@@ -1,0 +1,203 @@
+.absolute-note {
+  position: absolute;
+  z-index: 2147483647;
+  min-width: 200px;
+  max-width: 280px;
+  border-radius: 4px;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.5;
+  color: #333;
+  cursor: grab;
+  user-select: none;
+  transform: translate(-50%, -50%);
+  transition: box-shadow 0.3s;
+}
+
+.absolute-note-header {
+  display: flex;
+  align-items: center;
+  height: 28px;
+  padding: 0 4px;
+  border-radius: 4px 4px 0 0;
+  gap: 2px;
+}
+
+.absolute-note-header > :first-child {
+  margin-right: auto;
+}
+
+.absolute-note-dragging,
+.absolute-note-dragging .absolute-note-header {
+  cursor: grabbing;
+}
+
+.absolute-note-dragging {
+  opacity: 0.85;
+  box-shadow: 4px 8px 24px rgba(0, 0, 0, 0.35);
+  transition: none;
+}
+
+.absolute-note--locked {
+  opacity: 0.75;
+  cursor: default;
+}
+
+.absolute-note--locked,
+.absolute-note--locked .absolute-note-header {
+  cursor: default;
+}
+
+.absolute-note--locked .absolute-note-body {
+  user-select: text;
+}
+
+.absolute-note-lock,
+.absolute-note-delete {
+  all: unset;
+  width: 22px;
+  height: 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  line-height: 1;
+  border-radius: 50%;
+  cursor: pointer;
+  transition: background 0.15s;
+}
+
+.absolute-note-lock:hover,
+.absolute-note-delete:hover {
+  background: rgba(0, 0, 0, 0.12);
+}
+
+.absolute-note-delete {
+  font-size: 18px;
+  font-weight: 700;
+  color: #666;
+}
+
+.absolute-note-delete:hover {
+  color: #c00;
+}
+
+.absolute-note-colors {
+  display: flex;
+  gap: 3px;
+  align-items: center;
+  margin: 0 4px;
+}
+
+.absolute-note-color-dot {
+  display: block;
+  width: 14px;
+  height: 14px;
+  border-radius: 50%;
+  border: 2px solid transparent;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: transform 0.12s, border-color 0.12s;
+}
+
+.absolute-note-color-dot:hover {
+  transform: scale(1.25);
+}
+
+.absolute-note-color-dot.active {
+  border-color: #333;
+  transform: scale(1.15);
+}
+
+.absolute-note-body {
+  padding: 8px 10px;
+  outline: none;
+  min-height: 40px;
+  user-select: text;
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+.absolute-note-body:empty::before {
+  content: attr(data-placeholder);
+  color: #999;
+  pointer-events: none;
+}
+
+.absolute-note-outline {
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100%;
+  z-index: 2147483646;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #333;
+}
+
+.absolute-note-outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.absolute-note-outline-close {
+  all: unset;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.absolute-note-outline-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.absolute-note-outline-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.absolute-note-outline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.absolute-note-outline-item:hover {
+  background: #f5f5f5;
+}
+
+.absolute-note-outline-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  margin-top: 3px;
+}
+
+.absolute-note-outline-label {
+  word-break: break-word;
+  line-height: 1.4;
+}

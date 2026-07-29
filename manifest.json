@@ -1,0 +1,23 @@
+{
+  "manifest_version": 3,
+  "name": "Absolute Note",
+  "version": "1.0.0",
+  "description": "Notas adhesivas persistentes en cualquier página web.",
+  "permissions": ["storage", "contextMenus"],
+  "background": {
+    "service_worker": "background.js"
+  },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["styles.css"],
+      "run_at": "document_idle"
+    }
+  ],
+  "icons": {
+    "16": "icon.png",
+    "48": "icon.png",
+    "128": "icon.png"
+  }
+}
