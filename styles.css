@@ -1,15 +1,14 @@
 .absolute-note {
   position: absolute;
-  z-index: 2147483647;
+  touch-action: none;
   min-width: 200px;
-  max-width: 280px;
+  min-height: 100px;
   border-radius: 4px;
   box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
   font-size: 14px;
   line-height: 1.5;
   color: #333;
-  cursor: grab;
   user-select: none;
   transform: translate(-50%, -50%);
   transition: box-shadow 0.3s;
@@ -24,7 +23,10 @@
   gap: 2px;
 }
 
-.absolute-note-header > :first-child {
+.absolute-note-header-left {
+  display: flex;
+  align-items: center;
+  gap: 2px;
   margin-right: auto;
 }
 
@@ -54,6 +56,7 @@
 }
 
 .absolute-note-lock,
+.absolute-note-edit,
 .absolute-note-delete {
   all: unset;
   width: 22px;
@@ -69,6 +72,7 @@
 }
 
 .absolute-note-lock:hover,
+.absolute-note-edit:hover,
 .absolute-note-delete:hover {
   background: rgba(0, 0, 0, 0.12);
 }
@@ -113,10 +117,12 @@
 .absolute-note-body {
   padding: 8px 10px;
   outline: none;
-  min-height: 40px;
+  min-height: 100px;
   user-select: text;
   word-wrap: break-word;
   overflow-wrap: break-word;
+  resize: both;
+  overflow: auto;
 }
 
 .absolute-note-body:empty::before {
@@ -200,4 +206,25 @@
 .absolute-note-outline-label {
   word-break: break-word;
   line-height: 1.4;
+}
+
+.absolute-note-outline-del {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #999;
+  cursor: pointer;
+  border-radius: 50%;
+  margin-left: auto;
+  transition: background 0.12s, color 0.12s;
+}
+
+.absolute-note-outline-del:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #c00;
 }

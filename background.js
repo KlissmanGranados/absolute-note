@@ -1,49 +1,25 @@
-const MENU_PARENT = 'absolute-note-parent';
+importScripts('locales.js');
 
 chrome.runtime.onInstalled.addListener(() => {
-  chrome.contextMenus.create({
-    id: MENU_PARENT,
-    title: 'Absolute Note',
-    contexts: ['page', 'selection', 'image', 'link', 'editable'],
+  chrome.storage.local.get('absolute_note_lang', (result) => {
+    if (result.absolute_note_lang) setLang(result.absolute_note_lang);
+    chrome.contextMenus.create({
+      id: 'absolute-note-create',
+      title: getText('add_note'),
+      contexts: ['page', 'selection', 'image', 'link', 'editable'],
+    });
   });
+});
 
-  chrome.contextMenus.create({
-    id: 'absolute-note-create',
-    parentId: MENU_PARENT,
-    title: 'Agregar nota',
-    contexts: ['page', 'selection', 'image', 'link', 'editable'],
-  });
-
-  chrome.contextMenus.create({
-    id: 'absolute-note-outline',
-    parentId: MENU_PARENT,
-    title: 'Ver esquema',
-    contexts: ['page', 'selection', 'image', 'link', 'editable'],
-  });
-
-  chrome.contextMenus.create({
-    id: 'absolute-note-export',
-    parentId: MENU_PARENT,
-    title: 'Exportar notas (JSON)',
-    contexts: ['page', 'selection', 'image', 'link', 'editable'],
-  });
-
-  chrome.contextMenus.create({
-    id: 'absolute-note-import',
-    parentId: MENU_PARENT,
-    title: 'Importar notas (JSON)',
-    contexts: ['page', 'selection', 'image', 'link', 'editable'],
-  });
+chrome.storage.onChanged.addListener((changes) => {
+  if (changes.absolute_note_lang) {
+    setLang(changes.absolute_note_lang.newValue);
+    chrome.contextMenus.update('absolute-note-create', { title: getText('add_note') });
+  }
 });
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'absolute-note-create') {
-    chrome.tabs.sendMessage(tab.id, { action: 'createNote' });
-  } else if (info.menuItemId === 'absolute-note-outline') {
-    chrome.tabs.sendMessage(tab.id, { action: 'toggleOutline' });
-  } else if (info.menuItemId === 'absolute-note-export') {
-    chrome.tabs.sendMessage(tab.id, { action: 'exportNotes' });
-  } else if (info.menuItemId === 'absolute-note-import') {
-    chrome.tabs.sendMessage(tab.id, { action: 'importNotes' });
+    chrome.tabs.sendMessage(tab.id, { action: 'createNote' }).catch(() => {});
   }
 });
