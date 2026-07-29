@@ -42,6 +42,13 @@
     .btn:active { background: #bbdefb; }
     .btn .ico { font-size: 16px; width: 20px; text-align: center; }
     .btn .label { flex: 1; }
+    .btn--disabled {
+      opacity: 0.4;
+      cursor: default;
+      pointer-events: none;
+    }
+    .btn--disabled:hover { background: #fff; }
+    .btn--disabled:active { background: #fff; }
     hr { border: none; border-top: 1px solid #ddd; margin: 6px 0; }
     .footer {
       font-size: 11px;
@@ -70,6 +77,11 @@
 </head>
 <body>
   <h1>Absolute Note</h1>
+
+  <button class="btn" id="btn-hide">
+    <span class="ico" id="ico-hide"></span>
+    <span class="label" id="lbl-hide">Hide all notes</span>
+  </button>
 
   <button class="btn" id="btn-outline">
     <span class="ico">&#9776;</span>

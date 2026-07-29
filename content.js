@@ -640,6 +640,31 @@
     } catch(e) {}
   }
 
+  function toggleHideNotes() {
+    var hidden = document.documentElement.classList.toggle('absolute-note-notes-hidden');
+    saveHideState(hidden ? 'hidden' : 'visible');
+  }
+
+  function saveHideState(state) {
+    try {
+      chrome.storage.local.set({
+        ['absolute_note_hide_' + window.location.href]: state,
+      });
+    } catch(e) {}
+  }
+
+  function restoreHideState() {
+    try {
+      chrome.storage.local.get('absolute_note_hide_' + window.location.href, (result) => {
+        try { if (!chrome.runtime?.id) return; } catch(e) { return; }
+        if (chrome.runtime.lastError) return;
+        if (result['absolute_note_hide_' + window.location.href] === 'hidden') {
+          document.documentElement.classList.add('absolute-note-notes-hidden');
+        }
+      });
+    } catch(e) {}
+  }
+
   let lastUrl = window.location.href;
   let pollTimer = null;
   let settleTimer = null;
@@ -697,14 +722,20 @@
       ensureContainer(refEl || document.body);
       loadNotes();
       restoreOutlineState();
+      restoreHideState();
     } else {
       pollTimer = setTimeout(() => tryDetectAndLoad(attempts + 1), 500);
     }
   }
 
-  chrome.runtime.onMessage.addListener((msg) => {
+  chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'createNote') {
       createNoteAt(lastClickX, lastClickY);
+    } else if (msg.action === 'getState') {
+      sendResponse({
+        hasNotes: document.querySelectorAll('.absolute-note').length > 0,
+        hidden: document.documentElement.classList.contains('absolute-note-notes-hidden'),
+      });
     } else if (msg.action === 'exportNotes') {
       exportNotes();
     } else if (msg.action === 'importNotes') {
@@ -713,6 +744,8 @@
       showOutline();
     } else if (msg.action === 'toggleOutline') {
       toggleOutline();
+    } else if (msg.action === 'toggleHideNotes') {
+      toggleHideNotes();
     } else if (msg.action === 'setLang') {
       setLang(msg.lang);
       document.querySelectorAll('.absolute-note').forEach((el) => {

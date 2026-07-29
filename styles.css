@@ -1,8 +1,14 @@
 .absolute-note {
   position: absolute;
   touch-action: none;
+  display: flex;
+  flex-direction: column;
+  width: min(280px, calc(100vw - 40px));
   min-width: 200px;
   min-height: 100px;
+  max-width: calc(100vw - 40px);
+  resize: both;
+  overflow: auto;
   border-radius: 4px;
   box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
   font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
@@ -121,14 +127,20 @@
   user-select: text;
   word-wrap: break-word;
   overflow-wrap: break-word;
-  resize: both;
-  overflow: auto;
+  word-break: break-word;
+  white-space: pre-wrap;
+  box-sizing: border-box;
 }
 
 .absolute-note-body:empty::before {
   content: attr(data-placeholder);
   color: #999;
   pointer-events: none;
+}
+
+.absolute-note-notes-hidden .absolute-note,
+.absolute-note-notes-hidden .absolute-note-outline {
+  display: none !important;
 }
 
 .absolute-note-outline {
