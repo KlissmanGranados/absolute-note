@@ -5,8 +5,8 @@ A Chrome extension for creating **persistent sticky notes** on any web page. Not
 ## Quick start
 
 ```
-Right-click → "Absolute Note: Add Note" → a note appears at the click position
-Click the extension icon → popup with Outline / Export / Import
+Click the extension icon → "Add Note" → a note appears on the page
+Click the extension icon → "Recovery" → export/import all notes as JSON
 ```
 
 ---
@@ -23,7 +23,7 @@ Click the extension icon → popup with Outline / Export / Import
 - **Resizable**: drag the bottom-right corner; size and position persist across reloads
 - **SPA support** (React, etc.): detects URL changes and reloads notes automatically
 - **Outline panel**: side panel listing all notes sorted by position, with navigation and deletion
-- **Export and import** all notes as JSON (works from the popup on any page)
+- **Export and import** all notes as JSON from the dedicated **Recovery** page
 - **Sanitized HTML**: note content is filtered on render, save and import to prevent XSS
 
 ---
@@ -42,12 +42,14 @@ Click the extension icon → popup with Outline / Export / Import
 | File | Purpose |
 |---|---|
 | `manifest.json` | MV3 manifest with permissions, content script, and popup |
-| `background.js` | Service worker: creates the "Add Note" context menu item and syncs language across tabs |
 | `sanitize.js` | HTML sanitizer (allowlist) used by render, save, and import |
-| `content.js` | Core logic: notes, drag, rich text modal, outline, SPA detection |
+| `content.js` | Core logic: notes, drag, rich text modal, outline, SPA detection, language sync |
 | `styles.css` | Styles for notes, colors, outline, modal, and buttons |
-| `popup.html` | Popup window with outline, export/import, language, and note preferences |
-| `popup.js` | Handles popup actions, export/import from storage, and note preferences |
+| `popup.html` | Popup window with Add Note, Outline, Recovery, language, and note preferences |
+| `popup.js` | Handles popup actions, opens the recovery page, and note preferences |
+| `recovery.html` | Full-page recovery view with Export/Import and a progress spinner |
+| `recovery.js` | Export/import logic (merge + sanitize), runs directly on the recovery page |
+| `locales.js` | Localization strings (EN/ES) |
 | `icon.png` | Extension icon |
 
 ---
@@ -56,8 +58,8 @@ Click the extension icon → popup with Outline / Export / Import
 
 ### Create a note
 
-- **Right-click** anywhere on the page → **"Absolute Note: Add Note"**
-- The note appears at the click position, ready for typing
+- Click the extension icon → **"Add Note"** (or use the **+** button in the outline panel)
+- The note appears in the center of the viewport, ready for typing
 
 ### Edit
 
@@ -104,10 +106,10 @@ Click the extension icon → popup with Outline / Export / Import
 
 ### Export / Import
 
-- From the extension popup:
+- From the extension popup, click **"Recovery"** to open the recovery page:
   - **Export**: downloads a JSON file with all notes from all URLs
   - **Import**: loads a JSON file and merges notes (without duplicating existing IDs)
-- Works from any page, including restricted ones (`chrome://`), since it reads storage directly
+- Runs on a full page, so the file picker never closes the extension (unlike the popup)
 - Note content is sanitized on import
 
 ---

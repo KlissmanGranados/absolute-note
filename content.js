@@ -10,8 +10,6 @@
   ];
 
   let noteContainer = null;
-  let lastMouseX = window.innerWidth / 2;
-  let lastMouseY = Math.min(300, window.innerHeight / 2);
   const noteCleanups = new Map();
   const notesById = new Map();
   const noteKeys = new Map();
@@ -472,6 +470,15 @@
     });
   }
 
+  function isModalOpen() {
+    return !!(noteModal && noteModal.style.display !== 'none');
+  }
+
+  function createNoteAtCenter() {
+    if (isModalOpen()) return;
+    createNoteAt(window.innerWidth / 2, window.innerHeight / 2);
+  }
+
   let noteModal = null;
   let modalState = null;
   let modalSavedRange = null;
@@ -661,23 +668,6 @@
     modalState = null;
   }
 
-  let mouseRaf = null;
-  document.addEventListener('mousemove', (e) => {
-    if (mouseRaf) return;
-    mouseRaf = requestAnimationFrame(() => {
-      mouseRaf = null;
-      lastMouseX = e.clientX;
-      lastMouseY = e.clientY;
-    });
-  }, { passive: true });
-
-  document.addEventListener('contextmenu', (e) => {
-    const t = e.target;
-    if (t instanceof Element && (t.closest('.absolute-note') || t.closest('.absolute-note-modal'))) return;
-    lastMouseX = e.clientX;
-    lastMouseY = e.clientY;
-  });
-
   let outlinePanel = null;
 
   function rebuildOutline() {
@@ -815,7 +805,7 @@
     createBtn.className = 'absolute-note-outline-create';
     createBtn.textContent = getText('create_note');
     createBtn.addEventListener('click', () => {
-      createNoteAt(window.innerWidth / 2, window.innerHeight / 2);
+      createNoteAtCenter();
     });
     footer.appendChild(createBtn);
 
@@ -905,8 +895,6 @@
     if (outlinePanel) { outlinePanel.remove(); outlinePanel = null; }
     if (noteModal) { noteModal.remove(); noteModal = null; modalState = null; }
     noteContainer = null;
-    lastMouseX = window.innerWidth / 2;
-    lastMouseY = Math.min(300, window.innerHeight / 2);
 
     scheduleLoadAfterSettle(3000);
   }
@@ -997,13 +985,34 @@
     });
   }
 
+  function applyLangUi() {
+    document.querySelectorAll('.absolute-note').forEach((el) => {
+      const deleteBtn = el.querySelector('.absolute-note-delete');
+      if (deleteBtn) deleteBtn.title = getText('delete');
+    });
+    if (outlinePanel) {
+      const title = outlinePanel.querySelector('.absolute-note-outline-header span');
+      if (title) title.textContent = getText('outline_title');
+      rebuildOutline();
+    }
+  }
+
+  chrome.storage.onChanged.addListener((changes, area) => {
+    if (area !== 'local') return;
+    if (changes.absolute_note_lang) {
+      setLang(changes.absolute_note_lang.newValue);
+      applyLangUi();
+    }
+  });
+
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'createNote') {
-      createNoteAt(lastMouseX, lastMouseY);
+      createNoteAtCenter();
     } else if (msg.action === 'getState') {
       sendResponse({
         hasNotes: document.querySelectorAll('.absolute-note').length > 0,
         hidden: document.documentElement.classList.contains('absolute-note-notes-hidden'),
+        modalOpen: isModalOpen(),
       });
     } else if (msg.action === 'reloadNotes') {
       clearAllNotes();
@@ -1016,15 +1025,7 @@
       toggleHideNotes();
     } else if (msg.action === 'setLang') {
       setLang(msg.lang);
-      document.querySelectorAll('.absolute-note').forEach((el) => {
-        const deleteBtn = el.querySelector('.absolute-note-delete');
-        if (deleteBtn) deleteBtn.title = getText('delete');
-      });
-      if (outlinePanel) {
-        const title = outlinePanel.querySelector('.absolute-note-outline-header span');
-        if (title) title.textContent = getText('outline_title');
-        rebuildOutline();
-      }
+      applyLangUi();
     }
   });
 

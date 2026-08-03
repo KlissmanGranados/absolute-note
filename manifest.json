@@ -3,11 +3,7 @@
   "name": "Absolute Note",
   "version": "1.0.0",
   "description": "Notas adhesivas persistentes en cualquier página web.",
-  "permissions": ["storage", "contextMenus"],
-  "background": {
-    "service_worker": "background.js",
-    "scripts": ["locales.js", "background.js"]
-  },
+  "permissions": ["storage"],
   "action": {
     "default_popup": "popup.html",
     "default_title": "Absolute Note"

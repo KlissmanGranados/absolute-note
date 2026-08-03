@@ -71,22 +71,7 @@ document.getElementById('file-input').addEventListener('change', () => {
   showStatus('', false);
   var reader = new FileReader();
   reader.addEventListener('load', () => {
-    chrome.runtime.sendMessage({ action: 'importNotes', json: reader.result }, (resp) => {
-      showSpinner(false);
-      if (chrome.runtime.lastError || !resp) {
-        showStatus(getText('import_invalid'), true);
-        return;
-      }
-      if (!resp.ok) {
-        showStatus(getText('import_invalid') + ' (' + resp.error + ')', true);
-        return;
-      }
-      if (resp.added === 0 && resp.pages === 0 && resp.total === 0) {
-        showStatus(getText('import_ok', { count: 0 }), false);
-        return;
-      }
-      showStatus(getText('import_summary', { count: resp.added, pages: resp.pages, total: resp.total }), false);
-    });
+    importText(reader.result);
   });
   reader.addEventListener('error', () => {
     showSpinner(false);
@@ -94,3 +79,97 @@ document.getElementById('file-input').addEventListener('change', () => {
   });
   reader.readAsText(file);
 });
+
+function importText(text) {
+  var imported;
+  try {
+    imported = JSON.parse(text);
+  } catch (e) {
+    showSpinner(false);
+    showStatus(getText('import_invalid'), true);
+    return;
+  }
+  if (typeof imported !== 'object' || imported === null || Array.isArray(imported)) {
+    showSpinner(false);
+    showStatus(getText('import_invalid'), true);
+    return;
+  }
+  chrome.storage.local.get(null, (existing) => {
+    if (chrome.runtime.lastError) {
+      showSpinner(false);
+      showStatus('Error: ' + chrome.runtime.lastError.message, true);
+      return;
+    }
+    var merged = {};
+    var added = 0;
+    for (var key in existing) {
+      if (key.indexOf(STORAGE_PREFIX) === 0 && Array.isArray(existing[key])) merged[key] = existing[key].slice();
+    }
+    for (var key in imported) {
+      if (key.indexOf(STORAGE_PREFIX) !== 0) continue;
+      var value = imported[key];
+      if (!Array.isArray(value)) continue;
+      var notes = value
+        .filter(function (n) { return n && typeof n === 'object'; })
+        .map(function (n) {
+          var note = sanitizeNote(n);
+          if (typeof note.id !== 'string' || !note.id) {
+            note.id = Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
+          }
+          return note;
+        });
+      if (!notes.length) continue;
+      if (!merged[key]) {
+        merged[key] = notes;
+        added += notes.length;
+      } else {
+        var ids = new Set(merged[key].map(function (n) { return n.id; }));
+        notes.forEach(function (note) {
+          if (!ids.has(note.id)) {
+            merged[key].push(note);
+            ids.add(note.id);
+            added++;
+          }
+        });
+      }
+    }
+    if (Object.keys(merged).length) {
+      chrome.storage.local.set(merged, () => {
+        if (chrome.runtime.lastError) {
+          showSpinner(false);
+          showStatus(getText('import_invalid') + ' (storage: ' + chrome.runtime.lastError.message + ')', true);
+          return;
+        }
+        finishImport(added);
+      });
+    } else {
+      finishImport(added);
+    }
+  });
+}
+
+function finishImport(added) {
+  chrome.storage.local.get(null, (after) => {
+    var pages = 0, total = 0;
+    for (var k in after) {
+      if (k.indexOf(STORAGE_PREFIX) === 0 && Array.isArray(after[k])) {
+        pages++;
+        total += after[k].length;
+      }
+    }
+    showSpinner(false);
+    if (added === 0 && pages === 0 && total === 0) {
+      showStatus(getText('import_ok', { count: 0 }), false);
+    } else {
+      showStatus(getText('import_summary', { count: added, pages: pages, total: total }), false);
+    }
+    if (added > 0) {
+      chrome.tabs.query({}, (tabs) => {
+        tabs.forEach((tab) => {
+          if (tab.id == null) return;
+          chrome.tabs.sendMessage(tab.id, { action: 'reloadNotes' }, () => { void chrome.runtime.lastError; });
+        });
+      });
+    }
+  });
+}

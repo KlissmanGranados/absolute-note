@@ -7,6 +7,13 @@ function sendToActiveTab(action, extra) {
 
 var hideState = false;
 var hasNotes = false;
+var modalOpen = false;
+
+function updateAddNoteBtn() {
+  var btn = document.getElementById('btn-add-note');
+  if (!btn) return;
+  btn.classList.toggle('btn--disabled', modalOpen);
+}
 
 function updateOutlineBtn() {
   var btn = document.getElementById('btn-outline');
@@ -29,6 +36,7 @@ function updateHideLabel() {
 }
 
 function updateUI() {
+  document.getElementById('lbl-add-note').textContent = getText('add_note');
   document.getElementById('lbl-outline').textContent = getText('view_outline');
   document.getElementById('lbl-recovery').textContent = getText('recovery');
   document.getElementById('lbl-lang').textContent = getText('lang_label');
@@ -45,7 +53,6 @@ function applyLang(lang) {
   setLang(lang);
   updateUI();
   updateHideLabel();
-  sendToActiveTab('setLang', { lang: lang });
 }
 
 function showStatus(elId, text, isError) {
@@ -56,6 +63,11 @@ function showStatus(elId, text, isError) {
   clearTimeout(el._statusTimer);
   el._statusTimer = setTimeout(function () { el.textContent = ''; }, 3000);
 }
+
+document.getElementById('btn-add-note').addEventListener('click', () => {
+  sendToActiveTab('createNote');
+  window.close();
+});
 
 document.getElementById('btn-hide').addEventListener('click', () => {
   hideState = !hideState;
@@ -135,12 +147,16 @@ chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (chrome.runtime.lastError || !resp) {
       setButtonsEnabled(false);
       hideState = false;
+      modalOpen = false;
       updateHideLabel();
+      updateAddNoteBtn();
     } else {
       hideState = resp.hidden;
       hasNotes = resp.hasNotes;
+      modalOpen = !!resp.modalOpen;
       updateHideLabel();
       setButtonsEnabled(resp.hasNotes);
+      updateAddNoteBtn();
     }
   });
 });
