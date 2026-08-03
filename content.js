@@ -255,7 +255,6 @@
     let dragInit = false;
     let startX = 0, startY = 0;
     const DRAG_THRESHOLD = 4;
-    const header = el.querySelector('.absolute-note-header');
 
     function beginDrag(ev) {
       dragging = true;
@@ -266,10 +265,10 @@
 
     function onStart(e) {
       const ev = e.touches ? e.touches[0] : e;
-      if (note.locked) return;
-      if (e.target instanceof Element && e.target.closest('button, select, input')) return;
       e.stopPropagation();
       e.preventDefault();
+      if (note.locked) return;
+      if (e.target instanceof Element && e.target.closest('.absolute-note-resize, button, select, input, a, .absolute-note-color-dot')) return;
       dragInit = true;
       startX = ev.clientX;
       startY = ev.clientY;
@@ -321,19 +320,19 @@
       rebuildOutline();
     }
 
-    header.addEventListener('mousedown', onStart);
+    el.addEventListener('mousedown', onStart);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
-    header.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchstart', onStart, { passive: false });
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd);
     document.addEventListener('touchcancel', onEnd);
 
     return function cleanup() {
-      header.removeEventListener('mousedown', onStart);
+      el.removeEventListener('mousedown', onStart);
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onEnd);
-      header.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchstart', onStart);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
       document.removeEventListener('touchcancel', onEnd);
