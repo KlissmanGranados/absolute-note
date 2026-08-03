@@ -220,6 +220,12 @@
       el.classList.add('absolute-note--locked');
     }
 
+    el.addEventListener('dblclick', (e) => {
+      e.stopPropagation();
+      if (note.locked) return;
+      openNoteModal(note, el);
+    });
+
     notesById.set(note.id, note);
     const dragCleanup = makeDraggable(el, note);
     const resizeCleanup = setupResizeObserver(el, note);
