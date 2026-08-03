@@ -5,7 +5,8 @@
   "description": "Notas adhesivas persistentes en cualquier página web.",
   "permissions": ["storage", "contextMenus"],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "scripts": ["locales.js", "background.js"]
   },
   "action": {
     "default_popup": "popup.html",
@@ -23,5 +24,11 @@
     "16": "icon.png",
     "48": "icon.png",
     "128": "icon.png"
+  },
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "absolute-note@kgranados.com",
+      "strict_min_version": "121.0"
+    }
   }
 }

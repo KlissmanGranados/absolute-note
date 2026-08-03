@@ -1,7 +1,7 @@
 function sendToActiveTab(action, extra) {
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     if (!tabs || !tabs[0]) return;
-    chrome.tabs.sendMessage(tabs[0].id, Object.assign({ action }, extra)).catch(() => {});
+    chrome.tabs.sendMessage(tabs[0].id, Object.assign({ action }, extra), () => { void chrome.runtime.lastError; });
   });
 }
 

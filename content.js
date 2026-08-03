@@ -850,10 +850,18 @@
       loadAndRender();
       return;
     }
-    const refEl = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
-    const detected = findScrollContainer(refEl || document.body);
+    const noteEl = document.querySelector('.absolute-note');
+    if (!noteEl) return;
+    const r = noteEl.getBoundingClientRect();
+    if (r.width <= 0 || r.height <= 0) return;
+    const px = Math.round(r.left + r.width / 2);
+    const py = Math.round(r.top + r.height / 2);
+    const stack = document.elementsFromPoint(px, py);
+    const pageEl = stack.find((el) => !el.closest('.absolute-note, .absolute-note-modal, .absolute-note-outline'));
+    if (!pageEl) return;
+    const detected = findScrollContainer(pageEl);
     if (!isDefaultContainer(detected)) {
-      ensureContainer(refEl || document.body);
+      ensureContainer(pageEl);
     }
   }
 

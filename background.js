@@ -1,4 +1,6 @@
-importScripts('locales.js');
+if (typeof importScripts === 'function') {
+  importScripts('locales.js');
+}
 
 chrome.runtime.onInstalled.addListener(() => {
   chrome.storage.local.get('absolute_note_lang', (result) => {
@@ -19,7 +21,7 @@ chrome.storage.onChanged.addListener((changes) => {
     chrome.tabs.query({}, (tabs) => {
       tabs.forEach((tab) => {
         if (tab.id == null) return;
-        chrome.tabs.sendMessage(tab.id, { action: 'setLang', lang }).catch(() => {});
+        chrome.tabs.sendMessage(tab.id, { action: 'setLang', lang }, () => { void chrome.runtime.lastError; });
       });
     });
   }
@@ -27,6 +29,6 @@ chrome.storage.onChanged.addListener((changes) => {
 
 chrome.contextMenus.onClicked.addListener((info, tab) => {
   if (info.menuItemId === 'absolute-note-create') {
-    chrome.tabs.sendMessage(tab.id, { action: 'createNote' }).catch(() => {});
+    chrome.tabs.sendMessage(tab.id, { action: 'createNote' }, () => { void chrome.runtime.lastError; });
   }
 });
