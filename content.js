@@ -1,5 +1,7 @@
 (function () {
   const STORAGE_PREFIX = 'absolute_note_';
+  const SETTINGS_KEY = 'absolute_note_settings';
+  const DEFAULT_SETTINGS = { width: 170, height: 325, fontSize: 14 };
   const COLORS = [
     { bg: '#fff9c4', border: '#f0e68c', header: '#f5eaa0' },
     { bg: '#bbdefb', border: '#90caf9', header: '#90caf9' },
@@ -7,9 +9,11 @@
     { bg: '#f8bbd0', border: '#f48fb1', header: '#f48fb1' },
   ];
 
-  let lastClickX = 0;
-  let lastClickY = 0;
   let noteContainer = null;
+  let lastMouseX = window.innerWidth / 2;
+  let lastMouseY = Math.min(300, window.innerHeight / 2);
+  const noteCleanups = new Map();
+  const notesById = new Map();
 
   function getStorageKey() {
     return STORAGE_PREFIX + window.location.href;
@@ -19,18 +23,35 @@
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 8);
   }
 
+  function clampNum(v, min, max, def) {
+    const n = parseInt(v, 10);
+    if (isNaN(n)) return def;
+    return Math.min(max, Math.max(min, n));
+  }
+
+  function isDefaultContainer(el) {
+    return !el || el === document.documentElement || el === document.body;
+  }
+
+  function isScrollableStyle(s) {
+    return (
+      s.overflowY === 'auto' || s.overflowY === 'scroll' || s.overflowY === 'overlay' ||
+      s.overflow === 'auto' || s.overflow === 'scroll' || s.overflow === 'overlay'
+    );
+  }
+
   function findScrollContainer(el) {
+    let candidate = null;
     while (el) {
       const s = window.getComputedStyle(el);
-      if (
-        (s.overflowY === 'auto' || s.overflowY === 'scroll' || s.overflow === 'auto' || s.overflow === 'scroll') &&
-        el.scrollHeight > el.clientHeight
-      ) {
-        return el;
+      if (isScrollableStyle(s)) {
+        if (el.scrollHeight > el.clientHeight) return el;
+        if (!candidate) candidate = el;
       }
       if (el === document.documentElement) break;
       el = el.parentElement;
     }
+    if (candidate) return candidate;
     return document.scrollingElement || document.documentElement || document.body;
   }
 
@@ -42,9 +63,13 @@
   function ensureContainer(refEl) {
     const detected = findScrollContainer(refEl || document.body);
     if (detected !== noteContainer) {
+      const currentValid = noteContainer && noteContainer.isConnected;
+      if (!isDefaultContainer(noteContainer) && isDefaultContainer(detected) && currentValid) {
+        return noteContainer;
+      }
       const oldC = noteContainer;
       noteContainer = detected;
-      if (detected !== document.documentElement && detected !== document.body) {
+      if (!isDefaultContainer(detected)) {
         noteContainer.style.position = 'relative';
       }
       const notesToMove = oldC ? document.querySelectorAll('.absolute-note') : [];
@@ -58,6 +83,7 @@
             const centerY = elRect.top + elRect.height / 2;
             el.style.left = (centerX - newCRect.left + so.left) + 'px';
             el.style.top = (centerY - newCRect.top + so.top) + 'px';
+            noteContainer.appendChild(el);
             const noteId = el.getAttribute('data-note-id');
             const note = notes.find((n) => n.id === noteId);
             if (note) {
@@ -76,35 +102,33 @@
     const key = getStorageKey();
     try {
       chrome.storage.local.get(key, (result) => {
-        try { if (!chrome.runtime?.id) return; } catch(e) { return; }
+        try { if (!chrome.runtime?.id) return; } catch (e) { return; }
         if (chrome.runtime.lastError) return;
         const notes = result[key] || [];
         notes.forEach((note) => renderNote(note));
-        const refEl = document.elementFromPoint(window.innerWidth / 2, Math.min(300, window.innerHeight / 2));
-        ensureContainer(refEl || document.body);
       });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   function saveNotes(notes) {
     const key = getStorageKey();
     try {
       chrome.storage.local.set({ [key]: notes });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   function getNotes(callback) {
     const key = getStorageKey();
     try {
       chrome.storage.local.get(key, (result) => {
-        try { if (!chrome.runtime?.id) { callback([]); return; } } catch(e) { callback([]); return; }
+        try { if (!chrome.runtime?.id) { callback([]); return; } } catch (e) { callback([]); return; }
         if (chrome.runtime.lastError) {
           callback([]);
           return;
         }
         callback(result[key] || []);
       });
-    } catch(e) { callback([]); }
+    } catch (e) { callback([]); }
   }
 
   function applyColor(el, note) {
@@ -120,10 +144,8 @@
     if (document.getElementById('absolute-note-' + note.id)) return;
 
     if (note.colorIndex == null) note.colorIndex = 0;
-    if (note.posX_px == null) {
-      note.posX_px = 0;
-      note.posY_px = 0;
-    }
+    if (note.posX_px == null) note.posX_px = 0;
+    if (note.posY_px == null) note.posY_px = 0;
 
     const el = document.createElement('div');
     el.className = 'absolute-note';
@@ -132,34 +154,12 @@
     applyColor(el, note);
     el.style.left = note.posX_px + 'px';
     el.style.top = note.posY_px + 'px';
+    if (note.w_px != null) el.style.width = note.w_px + 'px';
+    if (note.h_px != null) el.style.height = note.h_px + 'px';
+    if (note.fontSize) el.style.fontSize = note.fontSize + 'px';
 
     const header = document.createElement('div');
     header.className = 'absolute-note-header';
-
-    const headerLeft = document.createElement('div');
-    headerLeft.className = 'absolute-note-header-left';
-
-    const lockBtn = document.createElement('button');
-    lockBtn.className = 'absolute-note-lock';
-    lockBtn.textContent = note.locked ? '🔒' : '🔓';
-    lockBtn.title = note.locked ? getText('unlock') : getText('lock');
-
-    const editBtn = document.createElement('button');
-    editBtn.className = 'absolute-note-edit';
-    editBtn.textContent = '✏️';
-    editBtn.title = getText('edit');
-    editBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (note.locked) return;
-      body.contentEditable = 'true';
-      body.focus();
-      const range = document.createRange();
-      range.selectNodeContents(body);
-      range.collapse(false);
-      const sel = window.getSelection();
-      sel.removeAllRanges();
-      sel.addRange(range);
-    });
 
     const deleteBtn = document.createElement('button');
     deleteBtn.className = 'absolute-note-delete';
@@ -187,59 +187,14 @@
     const body = document.createElement('div');
     body.className = 'absolute-note-body';
     body.contentEditable = 'false';
-    body.textContent = note.text || '';
-
-    let isComposing = false;
-    body.addEventListener('compositionstart', () => { isComposing = true; });
-    body.addEventListener('compositionend', () => {
-      isComposing = false;
-      body.dispatchEvent(new Event('input'));
-    });
-    body.addEventListener('input', () => {
-      if (isComposing) return;
-      note.text = body.textContent;
-      persistNote(note);
-      rebuildOutline();
-    });
-
-    body.addEventListener('click', (e) => {
-      e.stopPropagation();
-      if (note.locked) return;
-      if (body.contentEditable !== 'true') {
-        body.contentEditable = 'true';
-        body.focus();
-      }
-    });
-
-    body.addEventListener('blur', () => {
-      if (body.contentEditable === 'true') {
-        body.contentEditable = 'false';
-        note.text = body.textContent;
-        persistNote(note);
-        rebuildOutline();
-      }
-    });
-
-    lockBtn.addEventListener('click', (e) => {
-      e.stopPropagation();
-      note.locked = !note.locked;
-      lockBtn.textContent = note.locked ? '🔒' : '🔓';
-      lockBtn.title = note.locked ? getText('unlock') : getText('lock');
-      el.classList.toggle('absolute-note--locked', note.locked);
-      if (note.locked) {
-        body.contentEditable = 'false';
-      }
-      persistNote(note);
-    });
+    body.setAttribute('data-placeholder', getText('outline_empty'));
+    body.innerHTML = sanitizeHtml(note.text || '');
 
     deleteBtn.addEventListener('click', (e) => {
       e.stopPropagation();
       deleteNote(note.id);
     });
 
-    headerLeft.appendChild(lockBtn);
-    headerLeft.appendChild(editBtn);
-    header.appendChild(headerLeft);
     header.appendChild(colorsWrap);
     header.appendChild(deleteBtn);
     el.appendChild(header);
@@ -248,10 +203,15 @@
 
     if (note.locked) {
       el.classList.add('absolute-note--locked');
-      body.contentEditable = 'false';
     }
 
-    makeDraggable(el, note);
+    notesById.set(note.id, note);
+    const dragCleanup = makeDraggable(el, note);
+    const resizeCleanup = setupResizeObserver(el, note);
+    noteCleanups.set(note.id, () => {
+      if (dragCleanup) dragCleanup();
+      if (resizeCleanup) resizeCleanup();
+    });
   }
 
   function persistNote(note) {
@@ -267,6 +227,9 @@
   }
 
   function deleteNote(id) {
+    const clean = noteCleanups.get(id);
+    if (clean) { clean(); noteCleanups.delete(id); }
+    notesById.delete(id);
     const el = document.getElementById('absolute-note-' + id);
     if (el) el.remove();
     getNotes((notes) => {
@@ -281,27 +244,20 @@
     let dragging = false;
     let dragInit = false;
     let startX = 0, startY = 0;
-    let wasEditing = false;
     const DRAG_THRESHOLD = 4;
-    const body = el.querySelector('.absolute-note-body');
     const header = el.querySelector('.absolute-note-header');
-
-    let wheelHandler = null;
 
     function beginDrag(ev) {
       dragging = true;
-      wasEditing = body.contentEditable === 'true';
       const rect = el.getBoundingClientRect();
       offsetX = ev.clientX - rect.left;
       offsetY = ev.clientY - rect.top;
-      body.contentEditable = 'false';
-      const c = noteContainer || document.body;
-      c.style.overflow = 'hidden';
     }
 
     function onStart(e) {
       const ev = e.touches ? e.touches[0] : e;
       if (note.locked) return;
+      if (e.target instanceof Element && e.target.closest('button, select, input')) return;
       e.stopPropagation();
       e.preventDefault();
       dragInit = true;
@@ -344,12 +300,6 @@
       dragInit = false;
       el.classList.remove('absolute-note-dragging');
       const c = noteContainer || document.body;
-      c.style.overflow = '';
-      if (wasEditing && !note.locked) {
-        body.contentEditable = 'true';
-      } else {
-        body.contentEditable = 'false';
-      }
       const cRect = c.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       const so = scrollOffset(c);
@@ -367,6 +317,39 @@
     header.addEventListener('touchstart', onStart, { passive: false });
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+
+    return function cleanup() {
+      header.removeEventListener('mousedown', onStart);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      header.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+    };
+  }
+
+  function setupResizeObserver(el, note) {
+    if (typeof ResizeObserver === 'undefined') return null;
+    let raf = null;
+    const ro = new ResizeObserver(() => {
+      if (raf) return;
+      raf = requestAnimationFrame(() => {
+        raf = null;
+        const w = Math.round(el.offsetWidth);
+        const h = Math.round(el.offsetHeight);
+        if (note.w_px !== w || note.h_px !== h) {
+          note.w_px = w;
+          note.h_px = h;
+          el.style.left = note.posX_px + 'px';
+          el.style.top = note.posY_px + 'px';
+          persistNote(note);
+        }
+      });
+    });
+    ro.observe(el);
+    return () => ro.disconnect();
   }
 
   function createNoteAt(clientX, clientY) {
@@ -377,127 +360,234 @@
     const pageX = clientX - cRect.left + so.left;
     const pageY = clientY - cRect.top + so.top;
 
-    const note = {
-      id: generateId(),
-      text: '',
-      locked: false,
-      colorIndex: 0,
-      posX_px: pageX,
-      posY_px: pageY,
-    };
-
-    renderNote(note);
-    persistNote(note);
-
-    const el = document.getElementById('absolute-note-' + note.id);
-    if (el) {
-      const body = el.querySelector('.absolute-note-body');
-      if (body) {
-        body.contentEditable = 'true';
-        requestAnimationFrame(() => {
-          body.focus();
-          const range = document.createRange();
-          range.selectNodeContents(body);
-          const sel = window.getSelection();
-          sel.removeAllRanges();
-          sel.addRange(range);
-        });
-      }
-    }
-
-    rebuildOutline();
+    chrome.storage.local.get(SETTINGS_KEY, (res) => {
+      try { if (!chrome.runtime?.id) return; } catch (e) { return; }
+      if (chrome.runtime.lastError) return;
+      const s = res[SETTINGS_KEY] || {};
+      const note = {
+        id: generateId(),
+        text: '',
+        locked: false,
+        colorIndex: 0,
+        posX_px: pageX,
+        posY_px: pageY,
+        w_px: clampNum(s.width, 80, 2000, DEFAULT_SETTINGS.width),
+        h_px: clampNum(s.height, 80, 2000, DEFAULT_SETTINGS.height),
+        fontSize: clampNum(s.fontSize, 8, 72, DEFAULT_SETTINGS.fontSize),
+      };
+      renderNote(note);
+      persistNote(note);
+      const el = document.getElementById('absolute-note-' + note.id);
+      if (el) openNoteModal(note, el);
+      rebuildOutline();
+    });
   }
+
+  let noteModal = null;
+  let modalState = null;
+  let modalSavedRange = null;
+
+  function ensureModal() {
+    if (noteModal) return noteModal;
+
+    const overlay = document.createElement('div');
+    overlay.className = 'absolute-note-modal';
+
+    const dialog = document.createElement('div');
+    dialog.className = 'absolute-note-modal-dialog';
+
+    const title = document.createElement('div');
+    title.className = 'absolute-note-modal-title';
+    title.textContent = getText('edit_note');
+
+    const editor = document.createElement('div');
+    editor.className = 'absolute-note-modal-editor';
+    editor.contentEditable = 'true';
+    editor.setAttribute('data-placeholder', getText('outline_empty'));
+    editor.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        closeModal();
+      }
+    });
+    editor.addEventListener('blur', () => {
+      if (!modalState) return;
+      const sel = window.getSelection();
+      if (sel.rangeCount > 0) modalSavedRange = sel.getRangeAt(0).cloneRange();
+    });
+
+    const toolbar = document.createElement('div');
+    toolbar.className = 'absolute-note-modal-toolbar';
+    toolbar.appendChild(toolbarBtn('B', 'bold', null, getText('bold')));
+    toolbar.appendChild(toolbarBtn('I', 'italic', null, getText('italic')));
+    toolbar.appendChild(toolbarBtn('U', 'underline', null, getText('underline')));
+
+    const sizeSelect = document.createElement('select');
+    sizeSelect.className = 'absolute-note-modal-size';
+    sizeSelect.title = getText('font_size');
+    [12, 14, 16, 18, 24, 32].forEach((px) => {
+      const opt = document.createElement('option');
+      opt.value = px;
+      opt.textContent = px + 'px';
+      sizeSelect.appendChild(opt);
+    });
+    sizeSelect.value = '14';
+    sizeSelect.addEventListener('change', applySizeInput);
+    toolbar.appendChild(sizeSelect);
+    toolbar.appendChild(toolbarBtn('↺', 'removeFormat', null, getText('clear_format')));
+
+    const actions = document.createElement('div');
+    actions.className = 'absolute-note-modal-actions';
+
+    const cancelBtn = document.createElement('button');
+    cancelBtn.type = 'button';
+    cancelBtn.className = 'absolute-note-modal-btn absolute-note-modal-btn--cancel';
+    cancelBtn.textContent = getText('cancel');
+    cancelBtn.addEventListener('click', closeModal);
+
+    const saveBtn = document.createElement('button');
+    saveBtn.type = 'button';
+    saveBtn.className = 'absolute-note-modal-btn absolute-note-modal-btn--primary';
+    saveBtn.textContent = getText('save');
+    saveBtn.addEventListener('click', saveModalNote);
+
+    actions.appendChild(cancelBtn);
+    actions.appendChild(saveBtn);
+
+    dialog.appendChild(title);
+    dialog.appendChild(toolbar);
+    dialog.appendChild(editor);
+    dialog.appendChild(actions);
+    overlay.appendChild(dialog);
+    overlay.addEventListener('mousedown', (e) => {
+      if (e.target === overlay) closeModal();
+    });
+    overlay.addEventListener('contextmenu', (e) => e.preventDefault());
+
+    document.body.appendChild(overlay);
+    noteModal = overlay;
+    return overlay;
+  }
+
+  function toolbarBtn(label, cmd, value, title) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'absolute-note-modal-btn';
+    b.textContent = label;
+    b.title = title || '';
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => {
+      const editor = noteModal.querySelector('.absolute-note-modal-editor');
+      editor.focus();
+      document.execCommand(cmd, false, value);
+    });
+    return b;
+  }
+
+  function applyFontSize(px) {
+    document.execCommand('fontSize', false, '7');
+    const editor = noteModal.querySelector('.absolute-note-modal-editor');
+    editor.querySelectorAll('font').forEach((f) => {
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      while (f.firstChild) span.appendChild(f.firstChild);
+      f.parentNode.replaceChild(span, f);
+    });
+  }
+
+  function restoreModalSelection() {
+    const editor = noteModal.querySelector('.absolute-note-modal-editor');
+    const sel = window.getSelection();
+    if (modalSavedRange) {
+      sel.removeAllRanges();
+      sel.addRange(modalSavedRange);
+    } else {
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    }
+  }
+
+  function applySizeInput() {
+    const input = noteModal.querySelector('.absolute-note-modal-size');
+    const val = parseInt(input.value, 10);
+    if (isNaN(val)) {
+      input.value = '14';
+      return;
+    }
+    const px = Math.min(72, Math.max(8, val));
+    input.value = px;
+    const editor = noteModal.querySelector('.absolute-note-modal-editor');
+    editor.focus();
+    restoreModalSelection();
+    applyFontSize(px);
+  }
+
+  function openNoteModal(note, el) {
+    const overlay = ensureModal();
+    const editor = overlay.querySelector('.absolute-note-modal-editor');
+    const sizeSelect = overlay.querySelector('.absolute-note-modal-size');
+    editor.innerHTML = sanitizeHtml(note.text || '');
+    if (sizeSelect) {
+      const fs = note.fontSize || 14;
+      const has = Array.prototype.some.call(sizeSelect.options, (o) => o.value === String(fs));
+      if (!has) {
+        const opt = document.createElement('option');
+        opt.value = fs;
+        opt.textContent = fs + 'px';
+        sizeSelect.appendChild(opt);
+      }
+      sizeSelect.value = String(fs);
+    }
+    modalState = { note: note, el: el };
+    overlay.style.display = 'flex';
+    requestAnimationFrame(() => {
+      editor.focus();
+      const range = document.createRange();
+      range.selectNodeContents(editor);
+      range.collapse(false);
+      const sel = window.getSelection();
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  }
+
+  function saveModalNote() {
+    if (!modalState) return;
+    const { note, el } = modalState;
+    const editor = noteModal.querySelector('.absolute-note-modal-editor');
+    note.text = sanitizeHtml(editor.innerHTML);
+    const body = el.querySelector('.absolute-note-body');
+    if (body) body.innerHTML = note.text;
+    persistNote(note);
+    rebuildOutline();
+    closeModal();
+  }
+
+  function closeModal() {
+    if (!noteModal) return;
+    noteModal.style.display = 'none';
+    modalState = null;
+  }
+
+  let mouseRaf = null;
+  document.addEventListener('mousemove', (e) => {
+    if (mouseRaf) return;
+    mouseRaf = requestAnimationFrame(() => {
+      mouseRaf = null;
+      lastMouseX = e.clientX;
+      lastMouseY = e.clientY;
+    });
+  }, { passive: true });
 
   document.addEventListener('contextmenu', (e) => {
-    if (e.target.closest('.absolute-note')) return;
-    lastClickX = e.clientX;
-    lastClickY = e.clientY;
+    const t = e.target;
+    if (t instanceof Element && (t.closest('.absolute-note') || t.closest('.absolute-note-modal'))) return;
+    lastMouseX = e.clientX;
+    lastMouseY = e.clientY;
   });
-
-  function exportNotes() {
-    try {
-      chrome.storage.local.get(null, (data) => {
-        try { if (!chrome.runtime?.id) return; } catch(e) { return; }
-        if (chrome.runtime.lastError) return;
-        const prefix = STORAGE_PREFIX;
-        const filtered = {};
-        for (const key in data) {
-          if (key.startsWith(prefix)) {
-            filtered[key] = data[key];
-          }
-        }
-        const count = Object.values(filtered).reduce((sum, arr) => sum + arr.length, 0);
-        if (count === 0) {
-          alert(getText('no_notes_export'));
-          return;
-        }
-        const json = JSON.stringify(filtered, null, 2);
-        const blob = new Blob([json], { type: 'application/json' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = 'absolute-notes-' + new Date().toISOString().slice(0, 10) + '.json';
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-    } catch(e) {
-      console.error('Error exporting notes:', e);
-    }
-  }
-
-  function importNotes() {
-    const input = document.createElement('input');
-    input.type = 'file';
-    input.accept = '.json,application/json';
-    input.addEventListener('change', () => {
-      const file = input.files[0];
-      if (!file) return;
-      const reader = new FileReader();
-      reader.addEventListener('load', () => {
-        try {
-          const imported = JSON.parse(reader.result);
-          const prefix = STORAGE_PREFIX;
-          const merged = {};
-          chrome.storage.local.get(null, (existing) => {
-            try { if (!chrome.runtime?.id) return; } catch(e) { return; }
-            if (chrome.runtime.lastError) return;
-            for (const key in existing) {
-              if (key.startsWith(prefix)) {
-                merged[key] = existing[key];
-              }
-            }
-            for (const key in imported) {
-              if (!key.startsWith(prefix)) continue;
-              if (!merged[key]) {
-                merged[key] = imported[key];
-              } else {
-                const existingIds = new Set(merged[key].map((n) => n.id));
-                for (const note of imported[key]) {
-                  if (!existingIds.has(note.id)) {
-                    merged[key].push(note);
-                  }
-                }
-              }
-            }
-            chrome.storage.local.set(merged, () => {
-              if (chrome.runtime.lastError) return;
-              const notes = merged[STORAGE_PREFIX + window.location.href] || [];
-              document.querySelectorAll('.absolute-note').forEach((el) => el.remove());
-              const refEl = document.elementFromPoint(window.innerWidth / 2, Math.min(300, window.innerHeight / 2));
-              ensureContainer(refEl || document.body);
-              notes.forEach((note) => renderNote(note));
-              rebuildOutline();
-              alert(getText('import_ok'));
-            });
-          });
-        } catch {
-          alert(getText('import_invalid'));
-        }
-      });
-      reader.readAsText(file);
-    });
-    input.click();
-  }
 
   let outlinePanel = null;
 
@@ -530,6 +620,33 @@
       label.textContent = '#' + (i + 1) + ' ' + n.text;
       item.appendChild(dot);
       item.appendChild(label);
+      const lockBtn = document.createElement('span');
+      lockBtn.className = 'absolute-note-outline-lock';
+      const noteObj = notesById.get(n.id);
+      const isLocked = noteObj ? noteObj.locked : n.el.classList.contains('absolute-note--locked');
+      lockBtn.textContent = isLocked ? '🔒' : '🔓';
+      lockBtn.title = isLocked ? getText('unlock') : getText('lock');
+      lockBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const note = notesById.get(n.id);
+        if (!note) return;
+        note.locked = !note.locked;
+        n.el.classList.toggle('absolute-note--locked', note.locked);
+        lockBtn.textContent = note.locked ? '🔒' : '🔓';
+        lockBtn.title = note.locked ? getText('unlock') : getText('lock');
+        persistNote(note);
+      });
+      item.appendChild(lockBtn);
+      const editBtn = document.createElement('span');
+      editBtn.className = 'absolute-note-outline-edit';
+      editBtn.textContent = '✏️';
+      editBtn.title = getText('edit');
+      editBtn.addEventListener('click', (e) => {
+        e.stopPropagation();
+        const note = notesById.get(n.id);
+        if (note && !note.locked) openNoteModal(note, n.el);
+      });
+      item.appendChild(editBtn);
       const delBtn = document.createElement('span');
       delBtn.className = 'absolute-note-outline-del';
       delBtn.textContent = '×';
@@ -547,17 +664,6 @@
           setTimeout(() => {
             el.style.boxShadow = '';
           }, 2000);
-          const body = el.querySelector('.absolute-note-body');
-          if (body && !body.closest('.absolute-note--locked')) {
-            body.contentEditable = 'true';
-            body.focus();
-            const range = document.createRange();
-            range.selectNodeContents(body);
-            range.collapse(false);
-            const sel = window.getSelection();
-            sel.removeAllRanges();
-            sel.addRange(range);
-          }
         }
       });
       list.appendChild(item);
@@ -612,8 +718,21 @@
     const list = document.createElement('div');
     list.className = 'absolute-note-outline-list';
 
+    const footer = document.createElement('div');
+    footer.className = 'absolute-note-outline-footer';
+
+    const createBtn = document.createElement('button');
+    createBtn.type = 'button';
+    createBtn.className = 'absolute-note-outline-create';
+    createBtn.textContent = getText('create_note');
+    createBtn.addEventListener('click', () => {
+      createNoteAt(window.innerWidth / 2, window.innerHeight / 2);
+    });
+    footer.appendChild(createBtn);
+
     outlinePanel.appendChild(header);
     outlinePanel.appendChild(list);
+    outlinePanel.appendChild(footer);
     document.body.appendChild(outlinePanel);
 
     rebuildOutline();
@@ -625,19 +744,19 @@
       chrome.storage.local.set({
         ['absolute_note_outline_' + window.location.href]: state,
       });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   function restoreOutlineState() {
     try {
       chrome.storage.local.get('absolute_note_outline_' + window.location.href, (result) => {
-        try { if (!chrome.runtime?.id) return; } catch(e) { return; }
+        try { if (!chrome.runtime?.id) return; } catch (e) { return; }
         if (chrome.runtime.lastError) return;
         if (result['absolute_note_outline_' + window.location.href] === 'visible') {
           showOutline();
         }
       });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   function toggleHideNotes() {
@@ -650,40 +769,54 @@
       chrome.storage.local.set({
         ['absolute_note_hide_' + window.location.href]: state,
       });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   function restoreHideState() {
     try {
       chrome.storage.local.get('absolute_note_hide_' + window.location.href, (result) => {
-        try { if (!chrome.runtime?.id) return; } catch(e) { return; }
+        try { if (!chrome.runtime?.id) return; } catch (e) { return; }
         if (chrome.runtime.lastError) return;
         if (result['absolute_note_hide_' + window.location.href] === 'hidden') {
           document.documentElement.classList.add('absolute-note-notes-hidden');
         }
       });
-    } catch(e) {}
+    } catch (e) {}
   }
 
   let lastUrl = window.location.href;
-  let pollTimer = null;
   let settleTimer = null;
   let settleObserver = null;
+  let migrateTimer = null;
+  let migrateObserver = null;
 
   function cancelSettleWatch() {
     if (settleTimer) { clearTimeout(settleTimer); settleTimer = null; }
     if (settleObserver) { settleObserver.disconnect(); settleObserver = null; }
   }
 
+  function clearAllNotes() {
+    document.querySelectorAll('.absolute-note').forEach((el) => {
+      const id = el.getAttribute('data-note-id');
+      const clean = noteCleanups.get(id);
+      if (clean) { clean(); noteCleanups.delete(id); }
+      el.remove();
+    });
+    notesById.clear();
+  }
+
   function handleUrlChange() {
     const currentUrl = window.location.href;
     if (currentUrl === lastUrl) return;
     lastUrl = currentUrl;
-    if (pollTimer) { clearTimeout(pollTimer); pollTimer = null; }
+    if (migrateTimer) { clearTimeout(migrateTimer); migrateTimer = null; }
     cancelSettleWatch();
-    document.querySelectorAll('.absolute-note').forEach((el) => el.remove());
-    if (outlinePanel) outlinePanel.style.display = 'none';
+    clearAllNotes();
+    if (outlinePanel) { outlinePanel.remove(); outlinePanel = null; }
+    if (noteModal) { noteModal.remove(); noteModal = null; modalState = null; }
     noteContainer = null;
+    lastMouseX = window.innerWidth / 2;
+    lastMouseY = Math.min(300, window.innerHeight / 2);
 
     settleObserver = new MutationObserver(() => {
       clearTimeout(settleTimer);
@@ -695,7 +828,42 @@
 
   function onDomSettled() {
     cancelSettleWatch();
-    tryDetectAndLoad(0);
+    loadAndRender();
+  }
+
+  function loadAndRender() {
+    const refEl = document.querySelector('.absolute-note') ||
+      document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    ensureContainer(refEl || document.body);
+    loadNotes();
+    restoreOutlineState();
+    restoreHideState();
+  }
+
+  function maybeMigrateContainer() {
+    const current = noteContainer;
+    if (current && current.isConnected && !isDefaultContainer(current)) {
+      return;
+    }
+    if (current && !current.isConnected) {
+      noteContainer = null;
+      loadAndRender();
+      return;
+    }
+    const refEl = document.elementFromPoint(window.innerWidth / 2, window.innerHeight / 2);
+    const detected = findScrollContainer(refEl || document.body);
+    if (!isDefaultContainer(detected)) {
+      ensureContainer(refEl || document.body);
+    }
+  }
+
+  function watchContainer() {
+    if (migrateObserver) return;
+    migrateObserver = new MutationObserver(() => {
+      clearTimeout(migrateTimer);
+      migrateTimer = setTimeout(maybeMigrateContainer, 400);
+    });
+    migrateObserver.observe(document.body, { childList: true, subtree: true });
   }
 
   window.addEventListener('popstate', handleUrlChange);
@@ -708,38 +876,22 @@
   function init() {
     chrome.storage.local.get('absolute_note_lang', (result) => {
       if (result.absolute_note_lang) setLang(result.absolute_note_lang);
-      tryDetectAndLoad(0);
+      loadAndRender();
+      watchContainer();
     });
-  }
-
-  function tryDetectAndLoad(attempts) {
-    if (window.location.href !== lastUrl) return;
-    const refEl = document.elementFromPoint(window.innerWidth / 2, Math.min(300, window.innerHeight / 2));
-    const detected = findScrollContainer(refEl || document.body);
-    const isDefault = detected === document.body || detected === document.documentElement;
-
-    if (!isDefault || attempts >= 10) {
-      ensureContainer(refEl || document.body);
-      loadNotes();
-      restoreOutlineState();
-      restoreHideState();
-    } else {
-      pollTimer = setTimeout(() => tryDetectAndLoad(attempts + 1), 500);
-    }
   }
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
     if (msg.action === 'createNote') {
-      createNoteAt(lastClickX, lastClickY);
+      createNoteAt(lastMouseX, lastMouseY);
     } else if (msg.action === 'getState') {
       sendResponse({
         hasNotes: document.querySelectorAll('.absolute-note').length > 0,
         hidden: document.documentElement.classList.contains('absolute-note-notes-hidden'),
       });
-    } else if (msg.action === 'exportNotes') {
-      exportNotes();
-    } else if (msg.action === 'importNotes') {
-      importNotes();
+    } else if (msg.action === 'reloadNotes') {
+      clearAllNotes();
+      loadNotes();
     } else if (msg.action === 'openOutline') {
       showOutline();
     } else if (msg.action === 'toggleOutline') {
@@ -749,11 +901,6 @@
     } else if (msg.action === 'setLang') {
       setLang(msg.lang);
       document.querySelectorAll('.absolute-note').forEach((el) => {
-        const locked = el.classList.contains('absolute-note--locked');
-        const lockBtn = el.querySelector('.absolute-note-lock');
-        if (lockBtn) lockBtn.title = locked ? getText('unlock') : getText('lock');
-        const editBtn = el.querySelector('.absolute-note-edit');
-        if (editBtn) editBtn.title = getText('edit');
         const deleteBtn = el.querySelector('.absolute-note-delete');
         if (deleteBtn) deleteBtn.title = getText('delete');
       });
@@ -770,5 +917,4 @@
   } else {
     init();
   }
-
 })();

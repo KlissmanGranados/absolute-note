@@ -73,44 +73,106 @@
       background: #fff;
       color: #333;
     }
+    .field {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 8px;
+      margin-bottom: 8px;
+      font-size: 13px;
+    }
+    .field input {
+      width: 76px;
+      padding: 5px 6px;
+      border: 1px solid #ccc;
+      border-radius: 4px;
+      font-size: 13px;
+      text-align: right;
+    }
+    .status {
+      min-height: 16px;
+      font-size: 12px;
+      text-align: center;
+      padding: 4px 2px 0;
+    }
   </style>
 </head>
 <body>
-  <h1>Absolute Note</h1>
+  <div id="main-view">
+    <h1>Absolute Note</h1>
 
-  <button class="btn" id="btn-hide">
-    <span class="ico" id="ico-hide"></span>
-    <span class="label" id="lbl-hide">Hide all notes</span>
-  </button>
+    <button class="btn" id="btn-hide">
+      <span class="ico" id="ico-hide"></span>
+      <span class="label" id="lbl-hide">Hide all notes</span>
+    </button>
 
-  <button class="btn" id="btn-outline">
-    <span class="ico">&#9776;</span>
-    <span class="label" id="lbl-outline">View Outline</span>
-  </button>
+    <button class="btn" id="btn-outline">
+      <span class="ico">&#9776;</span>
+      <span class="label" id="lbl-outline">View Outline</span>
+    </button>
 
-  <hr>
+    <button class="btn" id="btn-customize">
+      <span class="ico">&#9881;</span>
+      <span class="label" id="lbl-customize">Customize notes</span>
+    </button>
 
-  <button class="btn" id="btn-export">
-    <span class="ico">&darr;</span>
-    <span class="label" id="lbl-export">Export notes (JSON)</span>
-  </button>
+    <hr>
 
-  <button class="btn" id="btn-import">
-    <span class="ico">&uarr;</span>
-    <span class="label" id="lbl-import">Import notes (JSON)</span>
-  </button>
+    <button class="btn" id="btn-export">
+      <span class="ico">&darr;</span>
+      <span class="label" id="lbl-export">Export notes (JSON)</span>
+    </button>
 
-  <div class="lang-row">
-    <span id="lbl-lang">Language:</span>
-    <select id="lang-select">
-      <option value="en">English</option>
-      <option value="es">Español</option>
-    </select>
+    <button class="btn" id="btn-import">
+      <span class="ico">&uarr;</span>
+      <span class="label" id="lbl-import">Import notes (JSON)</span>
+    </button>
+
+    <div class="lang-row">
+      <span id="lbl-lang">Language:</span>
+      <select id="lang-select">
+        <option value="en">English</option>
+        <option value="es">Español</option>
+      </select>
+    </div>
+
+    <div class="footer">v1.0.0</div>
+    <div id="status" class="status"></div>
   </div>
 
-  <div class="footer">v1.0.0</div>
+  <div id="settings-view" style="display:none">
+    <h1 id="lbl-prefs-title">Customize notes</h1>
+
+    <div class="field">
+      <label id="lbl-prefs-width">Width (px)</label>
+      <input type="number" id="in-width" min="80" max="2000" step="1">
+    </div>
+
+    <div class="field">
+      <label id="lbl-prefs-height">Height (px)</label>
+      <input type="number" id="in-height" min="80" max="2000" step="1">
+    </div>
+
+    <div class="field">
+      <label id="lbl-prefs-font">Font size (px)</label>
+      <input type="number" id="in-font" min="8" max="72" step="1">
+    </div>
+
+    <button class="btn" id="btn-prefs-save">
+      <span class="ico">&#10003;</span>
+      <span class="label">Save</span>
+    </button>
+
+    <button class="btn" id="btn-prefs-back">
+      <span class="ico">&larr;</span>
+      <span class="label">Back</span>
+    </button>
+
+    <div id="prefs-status" class="status"></div>
+  </div>
 
   <script src="locales.js"></script>
+  <script src="sanitize.js"></script>
   <script src="popup.js"></script>
 </body>
 </html>

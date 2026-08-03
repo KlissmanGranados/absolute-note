@@ -13,8 +13,15 @@ chrome.runtime.onInstalled.addListener(() => {
 
 chrome.storage.onChanged.addListener((changes) => {
   if (changes.absolute_note_lang) {
-    setLang(changes.absolute_note_lang.newValue);
+    const lang = changes.absolute_note_lang.newValue;
+    setLang(lang);
     chrome.contextMenus.update('absolute-note-create', { title: getText('add_note') });
+    chrome.tabs.query({}, (tabs) => {
+      tabs.forEach((tab) => {
+        if (tab.id == null) return;
+        chrome.tabs.sendMessage(tab.id, { action: 'setLang', lang }).catch(() => {});
+      });
+    });
   }
 });
 
