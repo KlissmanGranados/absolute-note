@@ -14,6 +14,7 @@
   let lastMouseY = Math.min(300, window.innerHeight / 2);
   const noteCleanups = new Map();
   const notesById = new Map();
+  const noteKeys = new Map();
 
   function getStorageKey() {
     return STORAGE_PREFIX + window.location.href;
@@ -76,7 +77,9 @@
       if (notesToMove.length > 0) {
         const newCRect = noteContainer.getBoundingClientRect();
         const so = scrollOffset(noteContainer);
+        const migrationKey = getStorageKey();
         getNotes((notes) => {
+          if (getStorageKey() !== migrationKey) return;
           notesToMove.forEach((el) => {
             const elRect = el.getBoundingClientRect();
             const centerX = elRect.left + elRect.width / 2;
@@ -91,34 +94,35 @@
               note.posY_px = parseFloat(el.style.top);
             }
           });
-          saveNotes(notes);
+          saveNotes(notes, migrationKey);
         });
       }
     }
     return noteContainer;
   }
 
-  function loadNotes() {
-    const key = getStorageKey();
+  function loadNotes(key) {
+    if (key == null) key = getStorageKey();
     try {
       chrome.storage.local.get(key, (result) => {
         try { if (!chrome.runtime?.id) return; } catch (e) { return; }
         if (chrome.runtime.lastError) return;
+        if (key !== getStorageKey()) return;
         const notes = result[key] || [];
-        notes.forEach((note) => renderNote(note));
+        notes.forEach((note) => renderNote(note, key));
       });
     } catch (e) {}
   }
 
-  function saveNotes(notes) {
-    const key = getStorageKey();
+  function saveNotes(notes, key) {
+    if (key == null) key = getStorageKey();
     try {
       chrome.storage.local.set({ [key]: notes });
     } catch (e) {}
   }
 
-  function getNotes(callback) {
-    const key = getStorageKey();
+  function getNotes(callback, key) {
+    if (key == null) key = getStorageKey();
     try {
       chrome.storage.local.get(key, (result) => {
         try { if (!chrome.runtime?.id) { callback([]); return; } } catch (e) { callback([]); return; }
@@ -140,12 +144,14 @@
     if (h) h.style.background = c.header;
   }
 
-  function renderNote(note) {
+  function renderNote(note, key) {
     if (document.getElementById('absolute-note-' + note.id)) return;
 
     if (note.colorIndex == null) note.colorIndex = 0;
     if (note.posX_px == null) note.posX_px = 0;
     if (note.posY_px == null) note.posY_px = 0;
+
+    if (key != null) noteKeys.set(note.id, key);
 
     const el = document.createElement('div');
     el.className = 'absolute-note';
@@ -208,13 +214,16 @@
     notesById.set(note.id, note);
     const dragCleanup = makeDraggable(el, note);
     const resizeCleanup = setupResizeObserver(el, note);
+    const gripCleanup = setupResizeGrip(el, note);
     noteCleanups.set(note.id, () => {
       if (dragCleanup) dragCleanup();
       if (resizeCleanup) resizeCleanup();
+      if (gripCleanup) gripCleanup();
     });
   }
 
   function persistNote(note) {
+    const key = noteKeys.get(note.id) || getStorageKey();
     getNotes((notes) => {
       const idx = notes.findIndex((n) => n.id === note.id);
       if (idx !== -1) {
@@ -222,8 +231,8 @@
       } else {
         notes.push(note);
       }
-      saveNotes(notes);
-    });
+      saveNotes(notes, key);
+    }, key);
   }
 
   function deleteNote(id) {
@@ -232,11 +241,12 @@
     notesById.delete(id);
     const el = document.getElementById('absolute-note-' + id);
     if (el) el.remove();
+    const key = noteKeys.get(id) || getStorageKey();
     getNotes((notes) => {
       const filtered = notes.filter((n) => n.id !== id);
-      saveNotes(filtered);
+      saveNotes(filtered, key);
       rebuildOutline();
-    });
+    }, key);
   }
 
   function makeDraggable(el, note) {
@@ -340,16 +350,73 @@
         const w = Math.round(el.offsetWidth);
         const h = Math.round(el.offsetHeight);
         if (note.w_px !== w || note.h_px !== h) {
-          note.w_px = w;
-          note.h_px = h;
           el.style.left = note.posX_px + 'px';
           el.style.top = note.posY_px + 'px';
-          persistNote(note);
         }
       });
     });
     ro.observe(el);
     return () => ro.disconnect();
+  }
+
+  function setupResizeGrip(el, note) {
+    const grip = document.createElement('div');
+    grip.className = 'absolute-note-resize';
+    el.appendChild(grip);
+
+    let resizing = false;
+    let startX = 0, startY = 0;
+    let startW = 0, startH = 0;
+
+    function onStart(e) {
+      const ev = e.touches ? e.touches[0] : e;
+      if (!el.offsetWidth || !el.offsetHeight) return;
+      e.stopPropagation();
+      e.preventDefault();
+      resizing = true;
+      startX = ev.clientX;
+      startY = ev.clientY;
+      startW = el.offsetWidth;
+      startH = el.offsetHeight;
+    }
+
+    function onMove(e) {
+      if (!resizing) return;
+      e.stopPropagation();
+      e.preventDefault();
+      const ev = e.touches ? e.touches[0] : e;
+      const w = Math.max(80, startW + (ev.clientX - startX));
+      const h = Math.max(80, startH + (ev.clientY - startY));
+      el.style.width = w + 'px';
+      el.style.height = h + 'px';
+    }
+
+    function onEnd() {
+      if (!resizing) return;
+      resizing = false;
+      note.w_px = Math.round(el.offsetWidth);
+      note.h_px = Math.round(el.offsetHeight);
+      persistNote(note);
+    }
+
+    grip.addEventListener('mousedown', onStart);
+    document.addEventListener('mousemove', onMove);
+    document.addEventListener('mouseup', onEnd);
+    grip.addEventListener('touchstart', onStart, { passive: false });
+    document.addEventListener('touchmove', onMove, { passive: false });
+    document.addEventListener('touchend', onEnd);
+    document.addEventListener('touchcancel', onEnd);
+
+    return function cleanup() {
+      grip.removeEventListener('mousedown', onStart);
+      document.removeEventListener('mousemove', onMove);
+      document.removeEventListener('mouseup', onEnd);
+      grip.removeEventListener('touchstart', onStart);
+      document.removeEventListener('touchmove', onMove);
+      document.removeEventListener('touchend', onEnd);
+      document.removeEventListener('touchcancel', onEnd);
+      if (grip.parentNode) grip.parentNode.removeChild(grip);
+    };
   }
 
   function createNoteAt(clientX, clientY) {
@@ -375,7 +442,7 @@
         h_px: clampNum(s.height, 80, 2000, DEFAULT_SETTINGS.height),
         fontSize: clampNum(s.fontSize, 8, 72, DEFAULT_SETTINGS.fontSize),
       };
-      renderNote(note);
+      renderNote(note, getStorageKey());
       persistNote(note);
       const el = document.getElementById('absolute-note-' + note.id);
       if (el) openNoteModal(note, el);
@@ -803,6 +870,7 @@
       el.remove();
     });
     notesById.clear();
+    noteKeys.clear();
   }
 
   function handleUrlChange() {
@@ -818,12 +886,16 @@
     lastMouseX = window.innerWidth / 2;
     lastMouseY = Math.min(300, window.innerHeight / 2);
 
+    scheduleLoadAfterSettle(3000);
+  }
+
+  function scheduleLoadAfterSettle(maxWait) {
     settleObserver = new MutationObserver(() => {
       clearTimeout(settleTimer);
       settleTimer = setTimeout(onDomSettled, 600);
     });
     settleObserver.observe(document.body, { childList: true, subtree: true });
-    settleTimer = setTimeout(onDomSettled, 3000);
+    settleTimer = setTimeout(onDomSettled, maxWait);
   }
 
   function onDomSettled() {
@@ -841,6 +913,7 @@
   }
 
   function maybeMigrateContainer() {
+    if (window.location.href !== lastUrl) return;
     const current = noteContainer;
     if (current && current.isConnected && !isDefaultContainer(current)) {
       return;
@@ -858,7 +931,20 @@
     const py = Math.round(r.top + r.height / 2);
     const stack = document.elementsFromPoint(px, py);
     const pageEl = stack.find((el) => !el.closest('.absolute-note, .absolute-note-modal, .absolute-note-outline'));
-    if (!pageEl) return;
+    if (!pageEl) {
+      const cx = Math.round(window.innerWidth / 2);
+      const cy = Math.round(window.innerHeight / 2);
+      const vpEl = document.elementsFromPoint(cx, cy).find((el) =>
+        !el.closest('.absolute-note, .absolute-note-modal, .absolute-note-outline'));
+      if (!vpEl) return;
+      const detected = findScrollContainer(vpEl);
+      if (isDefaultContainer(detected) || detected === noteContainer) return;
+      noteContainer = detected;
+      if (!isDefaultContainer(detected)) detected.style.position = 'relative';
+      clearAllNotes();
+      loadNotes();
+      return;
+    }
     const detected = findScrollContainer(pageEl);
     if (!isDefaultContainer(detected)) {
       ensureContainer(pageEl);
@@ -884,7 +970,7 @@
   function init() {
     chrome.storage.local.get('absolute_note_lang', (result) => {
       if (result.absolute_note_lang) setLang(result.absolute_note_lang);
-      loadAndRender();
+      scheduleLoadAfterSettle(2000);
       watchContainer();
     });
   }
