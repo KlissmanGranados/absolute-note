@@ -4,9 +4,12 @@ var FONT_SIZES = { '1': '10px', '2': '13px', '3': '16px', '4': '18px', '5': '24p
 function sanitizeHtml(input) {
   if (typeof input !== 'string' || !input) return '';
   if (input.indexOf('<') === -1) {
-    var plain = document.createElement('div');
-    plain.textContent = input;
-    return plain.innerHTML;
+    if (typeof document !== 'undefined') {
+      var plain = document.createElement('div');
+      plain.textContent = input;
+      return plain.innerHTML;
+    }
+    return input.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
   }
   var doc = new DOMParser().parseFromString(input, 'text/html');
   var root = doc.body;

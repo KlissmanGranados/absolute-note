@@ -1,0 +1,105 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <title>Absolute Note</title>
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+    body {
+      font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+      font-size: 15px;
+      background: #f5f5f5;
+      color: #333;
+      min-height: 100vh;
+      display: flex;
+      justify-content: center;
+      padding: 32px 16px;
+    }
+    .card {
+      width: 100%;
+      max-width: 420px;
+      background: #fff;
+      border-radius: 10px;
+      padding: 24px;
+      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+    }
+    h1 {
+      font-size: 20px;
+      font-weight: 700;
+      text-align: center;
+      color: #444;
+      margin-bottom: 20px;
+    }
+    section { margin-bottom: 20px; }
+    .btn {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      width: 100%;
+      padding: 12px 14px;
+      border: 1px solid #ddd;
+      border-radius: 8px;
+      background: #fff;
+      cursor: pointer;
+      font-size: 14px;
+      color: #333;
+      transition: background 0.12s, border-color 0.12s;
+      text-align: left;
+    }
+    .btn:hover { background: #e3f2fd; border-color: #90caf9; }
+    .btn:active { background: #bbdefb; }
+    .btn .ico { font-size: 18px; width: 22px; text-align: center; }
+    .btn .label { flex: 1; }
+    .status-row {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      min-height: 26px;
+      padding-top: 4px;
+    }
+    .spinner {
+      width: 18px;
+      height: 18px;
+      flex: 0 0 18px;
+      border: 3px solid #ddd;
+      border-top-color: #1565c0;
+      border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    .status {
+      font-size: 13px;
+      line-height: 1.4;
+      word-break: break-word;
+    }
+  </style>
+</head>
+<body>
+  <div class="card">
+    <h1 id="lbl-title">Recovery</h1>
+
+    <section>
+      <button class="btn" id="btn-export" type="button">
+        <span class="ico">&darr;</span>
+        <span class="label" id="lbl-export">Export notes (JSON)</span>
+      </button>
+    </section>
+
+    <section>
+      <button class="btn" id="btn-import" type="button">
+        <span class="ico">&uarr;</span>
+        <span class="label" id="lbl-import">Import notes (JSON)</span>
+      </button>
+      <input type="file" id="file-input" accept=".json,application/json" hidden>
+    </section>
+
+    <div class="status-row">
+      <div class="spinner" id="spinner" hidden></div>
+      <div id="status" class="status"></div>
+    </div>
+  </div>
+
+  <script src="locales.js"></script>
+  <script src="recovery.js"></script>
+</body>
+</html>

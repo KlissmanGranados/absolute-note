@@ -30,8 +30,7 @@ function updateHideLabel() {
 
 function updateUI() {
   document.getElementById('lbl-outline').textContent = getText('view_outline');
-  document.getElementById('lbl-export').textContent = getText('export_notes');
-  document.getElementById('lbl-import').textContent = getText('import_notes');
+  document.getElementById('lbl-recovery').textContent = getText('recovery');
   document.getElementById('lbl-lang').textContent = getText('lang_label');
   document.getElementById('lbl-customize').textContent = getText('customize_notes');
   document.getElementById('lbl-prefs-title').textContent = getText('customize_notes');
@@ -111,84 +110,9 @@ document.getElementById('btn-prefs-save').addEventListener('click', () => {
   });
 });
 
-document.getElementById('btn-export').addEventListener('click', () => {
-  chrome.storage.local.get(null, (data) => {
-    if (chrome.runtime.lastError) return;
-    var prefix = 'absolute_note_';
-    var filtered = {};
-    var count = 0;
-    for (var key in data) {
-      if (key.indexOf(prefix) === 0) {
-        filtered[key] = data[key];
-        count += data[key].length;
-      }
-    }
-    if (count === 0) {
-      showStatus('status', getText('no_notes_export'), true);
-      return;
-    }
-    var json = JSON.stringify(filtered, null, 2);
-    var blob = new Blob([json], { type: 'application/json' });
-    var url = URL.createObjectURL(blob);
-    var a = document.createElement('a');
-    a.href = url;
-    a.download = 'absolute-notes-' + new Date().toISOString().slice(0, 10) + '.json';
-    document.body.appendChild(a);
-    a.click();
-    a.remove();
-    setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
-    showStatus('status', getText('export_ok', { count: count }), false);
-  });
-});
-
-document.getElementById('btn-import').addEventListener('click', () => {
-  var input = document.createElement('input');
-  input.type = 'file';
-  input.accept = '.json,application/json';
-  input.addEventListener('change', () => {
-    var file = input.files[0];
-    if (!file) return;
-    var reader = new FileReader();
-    reader.addEventListener('load', () => {
-      try {
-        var imported = JSON.parse(reader.result);
-        var prefix = 'absolute_note_';
-        var merged = {};
-        chrome.storage.local.get(null, (existing) => {
-          if (chrome.runtime.lastError) return;
-          for (var key in existing) {
-            if (key.indexOf(prefix) === 0) merged[key] = existing[key];
-          }
-          var added = 0;
-          for (var key in imported) {
-            if (key.indexOf(prefix) !== 0) continue;
-            if (!merged[key]) {
-              merged[key] = imported[key].map(sanitizeNote);
-              added += merged[key].length;
-            } else {
-              var existingIds = new Set(merged[key].map(function (n) { return n.id; }));
-              imported[key].forEach(function (note) {
-                if (!existingIds.has(note.id)) {
-                  merged[key].push(sanitizeNote(note));
-                  existingIds.add(note.id);
-                  added++;
-                }
-              });
-            }
-          }
-          chrome.storage.local.set(merged, () => {
-            if (chrome.runtime.lastError) return;
-            showStatus('status', getText('import_ok', { count: added }), false);
-            sendToActiveTab('reloadNotes');
-          });
-        });
-      } catch (e) {
-        showStatus('status', getText('import_invalid'), true);
-      }
-    });
-    reader.readAsText(file);
-  });
-  input.click();
+document.getElementById('btn-recovery').addEventListener('click', () => {
+  chrome.tabs.create({ url: chrome.runtime.getURL('recovery.html') });
+  window.close();
 });
 
 var langSelect = document.getElementById('lang-select');
