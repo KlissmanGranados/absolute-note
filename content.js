@@ -16,6 +16,15 @@
   const notesById = new Map();
   const noteKeys = new Map();
 
+  let suppressClickAfterGesture = false;
+  function onDocumentClickCapture(e) {
+    if (!suppressClickAfterGesture) return;
+    suppressClickAfterGesture = false;
+    e.stopPropagation();
+    e.preventDefault();
+  }
+  document.addEventListener('click', onDocumentClickCapture, true);
+
   function getStorageKey() {
     return STORAGE_PREFIX + window.location.href;
   }
@@ -300,13 +309,14 @@
       el.classList.add('absolute-note-dragging');
     }
 
-    function onEnd() {
+    function onEnd(e) {
       if (!dragging) {
         dragInit = false;
         return;
       }
       dragging = false;
       dragInit = false;
+      if (e.type === 'mouseup') suppressClickAfterGesture = true;
       el.classList.remove('absolute-note-dragging');
       const c = noteContainer || document.body;
       const cRect = c.getBoundingClientRect();
@@ -320,7 +330,12 @@
       rebuildOutline();
     }
 
+    function onClick(e) {
+      e.stopPropagation();
+    }
+
     el.addEventListener('mousedown', onStart);
+    el.addEventListener('click', onClick);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     el.addEventListener('touchstart', onStart, { passive: false });
@@ -330,6 +345,7 @@
 
     return function cleanup() {
       el.removeEventListener('mousedown', onStart);
+      el.removeEventListener('click', onClick);
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onEnd);
       el.removeEventListener('touchstart', onStart);
@@ -390,9 +406,10 @@
       el.style.height = h + 'px';
     }
 
-    function onEnd() {
+    function onEnd(e) {
       if (!resizing) return;
       resizing = false;
+      if (e.type === 'mouseup') suppressClickAfterGesture = true;
       note.w_px = Math.round(el.offsetWidth);
       note.h_px = Math.round(el.offsetHeight);
       persistNote(note);
