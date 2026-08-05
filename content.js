@@ -10,6 +10,8 @@
   ];
 
   let noteContainer = null;
+  let editingNoteId = null;
+  let inlineSavedRange = null;
   const noteCleanups = new Map();
   const notesById = new Map();
   const noteKeys = new Map();
@@ -221,7 +223,8 @@
     el.addEventListener('dblclick', (e) => {
       e.stopPropagation();
       if (note.locked) return;
-      openNoteModal(note, el);
+      if (e.target instanceof Element && e.target.closest('button, .absolute-note-color-dot, .absolute-note-resize, select, input, a')) return;
+      startInlineEdit(note, el);
     });
 
     notesById.set(note.id, note);
@@ -251,6 +254,7 @@
   function deleteNote(id) {
     const clean = noteCleanups.get(id);
     if (clean) { clean(); noteCleanups.delete(id); }
+    if (editingNoteId === id) editingNoteId = null;
     notesById.delete(id);
     const el = document.getElementById('absolute-note-' + id);
     if (el) el.remove();
@@ -261,6 +265,149 @@
       rebuildOutline();
     }, key);
   }
+
+  function startInlineEdit(note, el) {
+    if (note.locked) return;
+    if (editingNoteId === note.id) return;
+    if (editingNoteId != null) finishInlineEdit();
+    const body = el.querySelector('.absolute-note-body');
+    if (!body) return;
+    editingNoteId = note.id;
+    inlineSavedRange = null;
+    body.contentEditable = 'true';
+    body.classList.add('absolute-note-body--editing');
+    el.addEventListener('focusout', onInlineFocusOut);
+    buildInlineToolbar(note, el);
+    requestAnimationFrame(() => {
+      body.focus();
+      const sel = window.getSelection();
+      const range = document.createRange();
+      range.selectNodeContents(body);
+      range.collapse(false);
+      sel.removeAllRanges();
+      sel.addRange(range);
+    });
+  }
+
+  function onInlineFocusOut(e) {
+    const el = document.getElementById('absolute-note-' + editingNoteId);
+    if (el && e.relatedTarget instanceof Element && el.contains(e.relatedTarget)) {
+      const sel = window.getSelection();
+      if (sel.rangeCount > 0) inlineSavedRange = sel.getRangeAt(0).cloneRange();
+      return;
+    }
+    finishInlineEdit();
+  }
+
+  function finishInlineEdit() {
+    const id = editingNoteId;
+    if (!id) return;
+    editingNoteId = null;
+    const el = document.getElementById('absolute-note-' + id);
+    if (el) {
+      el.removeEventListener('focusout', onInlineFocusOut);
+      const body = el.querySelector('.absolute-note-body');
+      if (body) {
+        body.contentEditable = 'false';
+        body.classList.remove('absolute-note-body--editing');
+      }
+      const bar = el.querySelector('.absolute-note-inline-toolbar');
+      if (bar) bar.remove();
+    }
+    const note = notesById.get(id);
+    if (note) {
+      note.text = el ? sanitizeHtml(el.querySelector('.absolute-note-body').innerHTML) : note.text;
+      persistNote(note);
+    }
+    rebuildOutline();
+  }
+
+  function buildInlineToolbar(note, el) {
+    const bar = document.createElement('div');
+    bar.className = 'absolute-note-inline-toolbar';
+    bar.appendChild(inlineToolbarBtn('B', 'bold', null, getText('bold')));
+    bar.appendChild(inlineToolbarBtn('I', 'italic', null, getText('italic')));
+    bar.appendChild(inlineToolbarBtn('U', 'underline', null, getText('underline')));
+
+    const size = document.createElement('select');
+    size.className = 'absolute-note-inline-size';
+    size.title = getText('font_size');
+    [12, 14, 16, 18, 24, 32].forEach((px) => {
+      const opt = document.createElement('option');
+      opt.value = px;
+      opt.textContent = px + 'px';
+      size.appendChild(opt);
+    });
+    const fs = note.fontSize || 14;
+    const has = Array.prototype.some.call(size.options, (o) => o.value === String(fs));
+    if (!has) {
+      const opt = document.createElement('option');
+      opt.value = fs;
+      opt.textContent = fs + 'px';
+      size.appendChild(opt);
+    }
+    size.value = String(fs);
+    size.addEventListener('change', () => {
+      const val = parseInt(size.value, 10);
+      if (isNaN(val)) return;
+      const editingEl = document.getElementById('absolute-note-' + editingNoteId);
+      if (!editingEl) return;
+      const body = editingEl.querySelector('.absolute-note-body');
+      if (!body) return;
+      body.focus();
+      const sel = window.getSelection();
+      if (inlineSavedRange) {
+        sel.removeAllRanges();
+        sel.addRange(inlineSavedRange);
+      }
+      applyInlineFontSize(Math.min(72, Math.max(8, val)));
+    });
+    bar.appendChild(size);
+
+    const done = document.createElement('button');
+    done.type = 'button';
+    done.className = 'absolute-note-inline-done';
+    done.textContent = '✓';
+    done.title = getText('save');
+    done.addEventListener('mousedown', (e) => e.preventDefault());
+    done.addEventListener('click', finishInlineEdit);
+    bar.appendChild(done);
+
+    el.appendChild(bar);
+  }
+
+  function inlineToolbarBtn(label, cmd, value, title) {
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'absolute-note-inline-btn';
+    b.textContent = label;
+    b.title = title || '';
+    b.addEventListener('mousedown', (e) => e.preventDefault());
+    b.addEventListener('click', () => {
+      const editingEl = document.getElementById('absolute-note-' + editingNoteId);
+      if (!editingEl) return;
+      const body = editingEl.querySelector('.absolute-note-body');
+      if (body) body.focus();
+      document.execCommand(cmd, false, value);
+    });
+    return b;
+  }
+
+  function applyInlineFontSize(px) {
+    const editingEl = document.getElementById('absolute-note-' + editingNoteId);
+    if (!editingEl) return;
+    const body = editingEl.querySelector('.absolute-note-body');
+    if (!body) return;
+    body.focus();
+    document.execCommand('fontSize', false, '7');
+    body.querySelectorAll('font').forEach((f) => {
+      const span = document.createElement('span');
+      span.style.fontSize = px + 'px';
+      while (f.firstChild) span.appendChild(f.firstChild);
+      f.parentNode.replaceChild(span, f);
+    });
+  }
+
 
   function makeDraggable(el, note) {
     let offsetX = 0, offsetY = 0;
@@ -278,10 +425,18 @@
 
     function onStart(e) {
       const ev = e.touches ? e.touches[0] : e;
+      if (editingNoteId === note.id && e.target instanceof Element && e.target.closest('.absolute-note-body')) {
+        e.stopPropagation();
+        return;
+      }
+      if (e.target instanceof Element && e.target.closest('select, input')) {
+        e.stopPropagation();
+        return;
+      }
       e.stopPropagation();
       e.preventDefault();
       if (note.locked) return;
-      if (e.target instanceof Element && e.target.closest('.absolute-note-resize, button, select, input, a, .absolute-note-color-dot')) return;
+      if (e.target instanceof Element && e.target.closest('.absolute-note-resize, button, a, .absolute-note-color-dot')) return;
       dragInit = true;
       startX = ev.clientX;
       startY = ev.clientY;
@@ -465,7 +620,7 @@
       renderNote(note, getStorageKey());
       persistNote(note);
       const el = document.getElementById('absolute-note-' + note.id);
-      if (el) openNoteModal(note, el);
+      if (el) startInlineEdit(note, el);
       rebuildOutline();
     });
   }
@@ -723,7 +878,7 @@
       editBtn.addEventListener('click', (e) => {
         e.stopPropagation();
         const note = notesById.get(n.id);
-        if (note && !note.locked) openNoteModal(note, n.el);
+        if (note && !note.locked) startInlineEdit(note, n.el);
       });
       item.appendChild(editBtn);
       const delBtn = document.createElement('span');
@@ -883,6 +1038,7 @@
     });
     notesById.clear();
     noteKeys.clear();
+    editingNoteId = null;
   }
 
   function handleUrlChange() {
