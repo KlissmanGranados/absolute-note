@@ -25,6 +25,7 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 - **Outline panel**: side panel listing all notes sorted by position, with navigation and deletion
 - **Export and import** all notes as JSON from the dedicated **Recovery** page
 - **Sanitized HTML**: note content is filtered on render, save and import to prevent XSS
+- **Detachable outline**: eject the outline panel into its own window (editing, deleting, locking and navigation still work from it)
 
 ---
 
@@ -47,6 +48,8 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 | `styles.css` | Styles for notes, colors, outline, modal, and buttons |
 | `popup.html` | Popup window with Add Note, Outline, Recovery, language, and note preferences |
 | `popup.js` | Handles popup actions, opens the recovery page, and note preferences |
+| `background.js` | Service worker: opens/retargets the detached outline window and tracks its associated tab |
+| `outline.html` / `outline.js` | Detached outline window (add/edit/delete/lock/navigate notes), synced live via storage |
 | `recovery.html` | Full-page recovery view with Export/Import and a progress spinner |
 | `recovery.js` | Export/import logic (merge + sanitize), runs directly on the recovery page |
 | `locales.js` | Localization strings (EN/ES) |
@@ -88,7 +91,8 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 
 ### Resize
 
-- Drag the bottom-right corner of the note body
+- Notes **auto-grow vertically** to fit their text (the size is kept on reload)
+- Drag the bottom-right corner to adjust the **width**
 - The new size and position are saved
 
 ### Customize new notes
@@ -103,6 +107,7 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 - Lists all notes sorted by vertical position
 - Click an item to scroll to the note and open editing
 - Click the **×** on an item to delete the note from the outline
+- Click the **⧉** button to detach the outline into its own window; from there you can still add, edit, delete, lock and jump to notes (the in-page panel hides while detached)
 
 ### Export / Import
 
@@ -151,10 +156,9 @@ New-note preferences are stored globally under `absolute_note_settings`:
 
 ## Compatibility
 
-- **Chrome** 88+ (Manifest V3)
-- Works on static pages and **SPAs** (React, Vue, Angular, etc.)
+- **Chrome** 88+ / **Firefox** 121+ (Manifest V3)
+- Works on static pages and **SPAs** (React, Vue, Angular, etc.) and inside **iframes** (`all_frames`)
 - Supports `pushState`, `replaceState`, `popstate`, and `hashchange` navigation
-- Correct positioning on manga readers like **Suwayomi** and **HeavenManga**
 
 ---
 

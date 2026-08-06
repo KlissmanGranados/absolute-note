@@ -10,6 +10,9 @@
   ];
 
   let noteContainer = null;
+  let host = null;
+  let migrating = false;
+  let readerMode = false;
   let editingNoteId = null;
   let inlineSavedRange = null;
   const noteCleanups = new Map();
@@ -17,11 +20,16 @@
   const noteKeys = new Map();
 
   let suppressClickAfterGesture = false;
+  let lastDragEndTime = 0;
+  const SUPPRESS_CLICK_WINDOW_MS = 400;
   function onDocumentClickCapture(e) {
     if (!suppressClickAfterGesture) return;
+    const insideNote = e.target instanceof Element && e.target.closest('.absolute-note');
+    const recent = Date.now() - lastDragEndTime <= SUPPRESS_CLICK_WINDOW_MS;
+    if (!insideNote && !recent) return;
     suppressClickAfterGesture = false;
     e.stopPropagation();
-    e.preventDefault();
+    if (insideNote) e.preventDefault();
   }
   document.addEventListener('click', onDocumentClickCapture, true);
 
@@ -39,6 +47,18 @@
     return Math.min(max, Math.max(min, n));
   }
 
+  function ensureHost() {
+    if (host && host.isConnected) return host;
+    host = document.getElementById('absolute-note-host');
+    if (!host || !host.isConnected) {
+      host = document.createElement('div');
+      host.id = 'absolute-note-host';
+      host.className = 'absolute-note-host';
+      (document.documentElement || document.body).appendChild(host);
+    }
+    return host;
+  }
+
   function isDefaultContainer(el) {
     return !el || el === document.documentElement || el === document.body;
   }
@@ -52,60 +72,108 @@
 
   function findScrollContainer(el) {
     let candidate = null;
+    let best = null;
+    let bestSurface = -1;
     while (el) {
       const s = window.getComputedStyle(el);
       if (isScrollableStyle(s)) {
-        if (el.scrollHeight > el.clientHeight) return el;
+        const surface = (el.scrollHeight - el.clientHeight) + (el.scrollWidth - el.clientWidth);
         if (!candidate) candidate = el;
+        if (best === null || surface > bestSurface) {
+          best = el;
+          bestSurface = surface;
+        }
       }
       if (el === document.documentElement) break;
       el = el.parentElement;
+    }
+    if (best && bestSurface > 0) {
+      return best;
     }
     if (candidate) return candidate;
     return document.scrollingElement || document.documentElement || document.body;
   }
 
   function scrollOffset(c) {
-    if (c === document.documentElement || c === document.body) return { left: 0, top: 0 };
-    return { left: c.scrollLeft || 0, top: c.scrollTop || 0 };
+    if (c === document.documentElement || c === document.body) {
+      const se = document.scrollingElement || document.documentElement;
+      return { borderL: 0, borderT: 0, left: se ? se.scrollLeft || 0 : 0, top: se ? se.scrollTop || 0 : 0 };
+    }
+    const cs = window.getComputedStyle(c);
+    return {
+      borderL: parseFloat(cs.borderLeftWidth) || 0,
+      borderT: parseFloat(cs.borderTopWidth) || 0,
+      left: c.scrollLeft || 0,
+      top: c.scrollTop || 0,
+    };
+  }
+
+  function isReaderLikeContainer(c) {
+    if (isDefaultContainer(c)) return false;
+    const r = c.getBoundingClientRect();
+    return r.height >= window.innerHeight * 0.9;
+  }
+
+  function applyScrollMode(c) {
+    readerMode = c ? isReaderLikeContainer(c) : false;
+    document.querySelectorAll('.absolute-note').forEach((el) => {
+      el.classList.toggle('absolute-note--reader', readerMode);
+    });
+    return readerMode;
   }
 
   function ensureContainer(refEl) {
     const detected = findScrollContainer(refEl || document.body);
-    if (detected !== noteContainer) {
-      const currentValid = noteContainer && noteContainer.isConnected;
-      if (!isDefaultContainer(noteContainer) && isDefaultContainer(detected) && currentValid) {
+    const currentValid = noteContainer && noteContainer.isConnected;
+
+    if (currentValid) {
+      if (!isDefaultContainer(noteContainer)) {
+        applyScrollMode(noteContainer);
         return noteContainer;
       }
-      const oldC = noteContainer;
-      noteContainer = detected;
-      if (!isDefaultContainer(detected)) {
-        noteContainer.style.position = 'relative';
+      if (isDefaultContainer(detected)) {
+        applyScrollMode(noteContainer);
+        return noteContainer;
       }
-      const notesToMove = oldC ? document.querySelectorAll('.absolute-note') : [];
-      if (notesToMove.length > 0) {
+    }
+
+    if (migrating) return noteContainer || detected;
+
+    migrating = true;
+    const oldC = noteContainer;
+    noteContainer = detected;
+    if (!isDefaultContainer(detected)) {
+      noteContainer.style.position = 'relative';
+    }
+    applyScrollMode(noteContainer);
+
+    const notesToMove = oldC ? document.querySelectorAll('.absolute-note') : [];
+    if (notesToMove.length > 0) {
+      const migrationKey = getStorageKey();
+      getNotes((notes) => {
+        if (getStorageKey() !== migrationKey) { migrating = false; return; }
         const newCRect = noteContainer.getBoundingClientRect();
         const so = scrollOffset(noteContainer);
-        const migrationKey = getStorageKey();
-        getNotes((notes) => {
-          if (getStorageKey() !== migrationKey) return;
-          notesToMove.forEach((el) => {
-            const elRect = el.getBoundingClientRect();
-            const centerX = elRect.left + elRect.width / 2;
-            const centerY = elRect.top + elRect.height / 2;
-            el.style.left = (centerX - newCRect.left + so.left) + 'px';
-            el.style.top = (centerY - newCRect.top + so.top) + 'px';
-            noteContainer.appendChild(el);
-            const noteId = el.getAttribute('data-note-id');
-            const note = notes.find((n) => n.id === noteId);
-            if (note) {
-              note.posX_px = parseFloat(el.style.left);
-              note.posY_px = parseFloat(el.style.top);
-            }
-          });
-          saveNotes(notes, migrationKey);
+        notesToMove.forEach((el) => {
+          if (noteContainer.contains(el)) return;
+          const elRect = el.getBoundingClientRect();
+          const centerX = elRect.left + elRect.width / 2;
+          el.style.left = (centerX - newCRect.left - so.borderL + so.left) + 'px';
+          el.style.top = (elRect.top - newCRect.top - so.borderT + so.top) + 'px';
+          noteContainer.appendChild(el);
+          const noteId = el.getAttribute('data-note-id');
+          const note = notes.find((n) => n.id === noteId);
+          if (note) {
+            note.posX_px = parseFloat(el.style.left);
+            note.posY_px = parseFloat(el.style.top);
+            note.anchor = note.anchor || 'top';
+          }
         });
-      }
+        saveNotes(notes, migrationKey);
+        migrating = false;
+      });
+    } else {
+      migrating = false;
     }
     return noteContainer;
   }
@@ -160,6 +228,13 @@
     if (note.posX_px == null) note.posX_px = 0;
     if (note.posY_px == null) note.posY_px = 0;
 
+    if (note.anchor !== 'top') {
+      const migH = clampNum(note.h_px, 80, 2000, DEFAULT_SETTINGS.height);
+      note.posY_px -= migH / 2;
+      note.anchor = 'top';
+      persistNote(note);
+    }
+
     if (key != null) noteKeys.set(note.id, key);
 
     const el = document.createElement('div');
@@ -170,7 +245,7 @@
     el.style.left = note.posX_px + 'px';
     el.style.top = note.posY_px + 'px';
     if (note.w_px != null) el.style.width = note.w_px + 'px';
-    if (note.h_px != null) el.style.height = note.h_px + 'px';
+    if (note.h_px != null) el.style.minHeight = note.h_px + 'px';
     if (note.fontSize) el.style.fontSize = note.fontSize + 'px';
 
     const header = document.createElement('div');
@@ -219,6 +294,9 @@
     if (note.locked) {
       el.classList.add('absolute-note--locked');
     }
+    if (readerMode) {
+      el.classList.add('absolute-note--reader');
+    }
 
     el.addEventListener('dblclick', (e) => {
       e.stopPropagation();
@@ -264,6 +342,44 @@
       saveNotes(filtered, key);
       rebuildOutline();
     }, key);
+  }
+
+  function scrollToNoteById(id) {
+    const el = document.getElementById('absolute-note-' + id);
+    if (!el) return;
+    el.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    el.style.boxShadow = '0 0 0 3px #1565c0, 2px 4px 12px rgba(0,0,0,0.25)';
+    setTimeout(() => {
+      el.style.boxShadow = '';
+    }, 2000);
+  }
+
+  function editNoteById(id) {
+    const note = notesById.get(id);
+    const el = document.getElementById('absolute-note-' + id);
+    if (note && el && !note.locked) {
+      startInlineEdit(note, el);
+    }
+  }
+
+  function toggleLockById(id) {
+    const note = notesById.get(id);
+    if (!note) return;
+    note.locked = !note.locked;
+    const el = document.getElementById('absolute-note-' + id);
+    if (el) el.classList.toggle('absolute-note--locked', note.locked);
+    persistNote(note);
+    rebuildOutline();
+  }
+
+  function openOutlineWindow() {
+    try {
+      chrome.runtime.sendMessage({ action: 'openOutlineWindow' }, () => { void chrome.runtime.lastError; });
+    } catch (e) {}
+    if (outlinePanel) {
+      outlinePanel.style.display = 'none';
+      saveOutlineState('hidden');
+    }
   }
 
   function startInlineEdit(note, el) {
@@ -442,6 +558,12 @@
       startY = ev.clientY;
     }
 
+    function captureHeaderStop(e) {
+      if (e.target instanceof Element && e.target.closest('.absolute-note-header')) {
+        e.stopPropagation();
+      }
+    }
+
     function onMove(e) {
       if (!dragging && dragInit) {
         e.stopPropagation();
@@ -461,8 +583,8 @@
       const c = noteContainer || document.body;
       const cRect = c.getBoundingClientRect();
       const so = scrollOffset(c);
-      const pageX = ev.clientX - offsetX - cRect.left + so.left;
-      const pageY = ev.clientY - offsetY - cRect.top + so.top;
+      const pageX = ev.clientX - offsetX - cRect.left - so.borderL + so.left;
+      const pageY = ev.clientY - offsetY - cRect.top - so.borderT + so.top;
       el.style.left = pageX + 'px';
       el.style.top = pageY + 'px';
       el.classList.add('absolute-note-dragging');
@@ -475,16 +597,18 @@
       }
       dragging = false;
       dragInit = false;
-      if (e.type === 'mouseup') suppressClickAfterGesture = true;
+      suppressClickAfterGesture = true;
+      lastDragEndTime = Date.now();
       el.classList.remove('absolute-note-dragging');
       const c = noteContainer || document.body;
       const cRect = c.getBoundingClientRect();
       const elRect = el.getBoundingClientRect();
       const so = scrollOffset(c);
-      note.posX_px = elRect.left - cRect.left + elRect.width / 2 + so.left;
-      note.posY_px = elRect.top - cRect.top + elRect.height / 2 + so.top;
+      note.posX_px = elRect.left - cRect.left - so.borderL + elRect.width / 2 + so.left;
+      note.posY_px = elRect.top - cRect.top - so.borderT + so.top;
       el.style.left = note.posX_px + 'px';
       el.style.top = note.posY_px + 'px';
+      note.anchor = note.anchor || 'top';
       persistNote(note);
       rebuildOutline();
     }
@@ -494,20 +618,24 @@
     }
 
     el.addEventListener('mousedown', onStart);
+    el.addEventListener('mousedown', captureHeaderStop, true);
     el.addEventListener('click', onClick);
     document.addEventListener('mousemove', onMove);
     document.addEventListener('mouseup', onEnd);
     el.addEventListener('touchstart', onStart, { passive: false });
+    el.addEventListener('touchstart', captureHeaderStop, true);
     document.addEventListener('touchmove', onMove, { passive: false });
     document.addEventListener('touchend', onEnd);
     document.addEventListener('touchcancel', onEnd);
 
     return function cleanup() {
       el.removeEventListener('mousedown', onStart);
+      el.removeEventListener('mousedown', captureHeaderStop, true);
       el.removeEventListener('click', onClick);
       document.removeEventListener('mousemove', onMove);
       document.removeEventListener('mouseup', onEnd);
       el.removeEventListener('touchstart', onStart);
+      el.removeEventListener('touchstart', captureHeaderStop, true);
       document.removeEventListener('touchmove', onMove);
       document.removeEventListener('touchend', onEnd);
       document.removeEventListener('touchcancel', onEnd);
@@ -523,10 +651,11 @@
         raf = null;
         const w = Math.round(el.offsetWidth);
         const h = Math.round(el.offsetHeight);
-        if (note.w_px !== w || note.h_px !== h) {
-          el.style.left = note.posX_px + 'px';
-          el.style.top = note.posY_px + 'px';
-        }
+        if (note.w_px !== w) note.w_px = w;
+        if (note.h_px !== h) note.h_px = h;
+        el.style.left = note.posX_px + 'px';
+        el.style.top = note.posY_px + 'px';
+        persistNote(note);
       });
     });
     ro.observe(el);
@@ -540,7 +669,8 @@
 
     let resizing = false;
     let startX = 0, startY = 0;
-    let startW = 0, startH = 0;
+    let startW = 0;
+    let startH = 0;
 
     function onStart(e) {
       const ev = e.touches ? e.touches[0] : e;
@@ -560,15 +690,14 @@
       e.preventDefault();
       const ev = e.touches ? e.touches[0] : e;
       const w = Math.max(80, startW + (ev.clientX - startX));
-      const h = Math.max(80, startH + (ev.clientY - startY));
       el.style.width = w + 'px';
-      el.style.height = h + 'px';
     }
 
     function onEnd(e) {
       if (!resizing) return;
       resizing = false;
-      if (e.type === 'mouseup') suppressClickAfterGesture = true;
+      suppressClickAfterGesture = true;
+      lastDragEndTime = Date.now();
       note.w_px = Math.round(el.offsetWidth);
       note.h_px = Math.round(el.offsetHeight);
       persistNote(note);
@@ -599,22 +728,24 @@
     const c = noteContainer || document.body;
     const cRect = c.getBoundingClientRect();
     const so = scrollOffset(c);
-    const pageX = clientX - cRect.left + so.left;
-    const pageY = clientY - cRect.top + so.top;
+    const pageX = clientX - cRect.left - so.borderL + so.left;
+    const pageY = clientY - cRect.top - so.borderT + so.top;
 
     chrome.storage.local.get(SETTINGS_KEY, (res) => {
       try { if (!chrome.runtime?.id) return; } catch (e) { return; }
       if (chrome.runtime.lastError) return;
       const s = res[SETTINGS_KEY] || {};
+      const h = clampNum(s.height, 80, 2000, DEFAULT_SETTINGS.height);
       const note = {
         id: generateId(),
         text: '',
         locked: false,
         colorIndex: 0,
+        anchor: 'top',
         posX_px: pageX,
-        posY_px: pageY,
+        posY_px: pageY - h / 2,
         w_px: clampNum(s.width, 80, 2000, DEFAULT_SETTINGS.width),
-        h_px: clampNum(s.height, 80, 2000, DEFAULT_SETTINGS.height),
+        h_px: h,
         fontSize: clampNum(s.fontSize, 8, 72, DEFAULT_SETTINGS.fontSize),
       };
       renderNote(note, getStorageKey());
@@ -715,7 +846,7 @@
     });
     overlay.addEventListener('contextmenu', (e) => e.preventDefault());
 
-    document.body.appendChild(overlay);
+    ensureHost().appendChild(overlay);
     noteModal = overlay;
     return overlay;
   }
@@ -938,16 +1069,31 @@
     const title = document.createElement('span');
     title.textContent = getText('outline_title');
 
+    const headerActions = document.createElement('div');
+    headerActions.className = 'absolute-note-outline-actions';
+
     const closeBtn = document.createElement('button');
     closeBtn.className = 'absolute-note-outline-close';
     closeBtn.textContent = '×';
+    closeBtn.title = getText('close');
     closeBtn.addEventListener('click', () => {
       outlinePanel.style.display = 'none';
       saveOutlineState('hidden');
     });
 
+    const ejectBtn = document.createElement('button');
+    ejectBtn.className = 'absolute-note-outline-eject';
+    ejectBtn.type = 'button';
+    ejectBtn.textContent = '⧉';
+    ejectBtn.title = getText('eject_outline');
+    ejectBtn.addEventListener('click', () => {
+      openOutlineWindow();
+    });
+
     header.appendChild(title);
-    header.appendChild(closeBtn);
+    headerActions.appendChild(ejectBtn);
+    headerActions.appendChild(closeBtn);
+    header.appendChild(headerActions);
 
     const list = document.createElement('div');
     list.className = 'absolute-note-outline-list';
@@ -967,7 +1113,7 @@
     outlinePanel.appendChild(header);
     outlinePanel.appendChild(list);
     outlinePanel.appendChild(footer);
-    document.body.appendChild(outlinePanel);
+    ensureHost().appendChild(outlinePanel);
 
     rebuildOutline();
     saveOutlineState('visible');
@@ -1053,6 +1199,9 @@
     noteContainer = null;
 
     scheduleLoadAfterSettle(3000);
+    setTimeout(() => {
+      if (window.location.href === currentUrl) loadAndRender();
+    }, 0);
   }
 
   function scheduleLoadAfterSettle(maxWait) {
@@ -1162,6 +1311,7 @@
   });
 
   chrome.runtime.onMessage.addListener((msg, sender, sendResponse) => {
+    if (window.self !== window.top) return;
     if (msg.action === 'createNote') {
       createNoteAtCenter();
     } else if (msg.action === 'getState') {
@@ -1179,6 +1329,20 @@
       toggleOutline();
     } else if (msg.action === 'toggleHideNotes') {
       toggleHideNotes();
+    } else if (msg.action === 'outlineAddNote') {
+      const id = msg.id;
+      if (msg.cmd === 'addNote') {
+        createNoteAtCenter();
+      } else if (msg.cmd === 'scrollToNote') {
+        scrollToNoteById(id);
+      } else if (msg.cmd === 'editNote') {
+        editNoteById(id);
+      } else if (msg.cmd === 'deleteNote') {
+        deleteNote(id);
+      } else if (msg.cmd === 'toggleLock') {
+        toggleLockById(id);
+      }
+      sendResponse({ ok: true });
     } else if (msg.action === 'setLang') {
       setLang(msg.lang);
       applyLangUi();

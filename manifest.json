@@ -4,6 +4,9 @@
   "version": "1.0.0",
   "description": "Notas adhesivas persistentes en cualquier página web.",
   "permissions": ["storage"],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html",
     "default_title": "Absolute Note"
@@ -11,6 +14,7 @@
   "content_scripts": [
     {
       "matches": ["<all_urls>"],
+      "all_frames": true,
       "js": ["locales.js", "sanitize.js", "content.js"],
       "css": ["styles.css"],
       "run_at": "document_idle"

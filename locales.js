@@ -35,6 +35,10 @@ var LOCALES = {
     font_size: 'Font size',
     clear_format: 'Clear formatting',
     create_note: 'Create note',
+    close: 'Close',
+    eject_outline: 'Open outline in a window',
+    no_notes_empty: 'No notes on this page',
+    outline_target_lost: 'The page for these notes is no longer available.',
   },
   es: {
     lock: 'Bloquear nota',
@@ -72,6 +76,10 @@ var LOCALES = {
     font_size: 'Tamaño de fuente',
     clear_format: 'Limpiar formato',
     create_note: 'Crear nota',
+    close: 'Cerrar',
+    eject_outline: 'Abrir esquema en una ventana',
+    no_notes_empty: 'No hay notas en esta página',
+    outline_target_lost: 'La página de estas notas ya no está disponible.',
   },
 };
 

@@ -1,6 +1,18 @@
+.absolute-note-host {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 2147483647;
+}
+
+.absolute-note-host > .absolute-note-outline,
+.absolute-note-host > .absolute-note-modal {
+  pointer-events: auto;
+}
+
 .absolute-note {
   position: absolute;
-  touch-action: none;
+  touch-action: manipulation;
   display: flex;
   flex-direction: column;
   width: 280px;
@@ -14,7 +26,7 @@
   line-height: 1.5;
   color: #333;
   user-select: none;
-  transform: translate(-50%, -50%);
+  transform: translate(-50%, 0);
   transition: box-shadow 0.3s;
 }
 
@@ -25,9 +37,18 @@
   padding: 0 4px;
   border-radius: 4px 4px 0 0;
   gap: 2px;
+  touch-action: none;
 }
 
-.absolute-note-dragging,
+.absolute-note-dragging {
+  touch-action: none;
+  cursor: grabbing !important;
+  user-select: none !important;
+}
+
+.absolute-note--reader {
+  z-index: 2147483000;
+}
 .absolute-note-dragging .absolute-note-header {
   cursor: grabbing;
 }
@@ -109,9 +130,9 @@
 }
 
 .absolute-note-body {
-  flex: 1;
-  min-height: 0;
-  overflow-y: auto;
+  flex: 1 1 auto;
+  min-height: 40px;
+  overflow: visible;
   padding: 8px 10px;
   outline: none;
   user-select: text;
@@ -212,7 +233,7 @@
   bottom: 2px;
   width: 16px;
   height: 16px;
-  cursor: nwse-resize;
+  cursor: ew-resize;
   border-bottom-right-radius: 4px;
   z-index: 2;
 }
@@ -276,6 +297,30 @@
 }
 
 .absolute-note-outline-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.absolute-note-outline-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.absolute-note-outline-eject {
+  all: unset;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.absolute-note-outline-eject:hover {
   background: rgba(0, 0, 0, 0.08);
 }
 
