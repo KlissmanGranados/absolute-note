@@ -186,7 +186,13 @@
         if (chrome.runtime.lastError) return;
         if (key !== getStorageKey()) return;
         const notes = result[key] || [];
-        notes.forEach((note) => renderNote(note, key));
+        notes.filter((note) => !note.key || note.key === key).forEach((note) => {
+          if (!note.key) {
+            note.key = key;
+            persistNote(note);
+          }
+          renderNote(note, key);
+        });
       });
     } catch (e) {}
   }
@@ -235,7 +241,10 @@
       persistNote(note);
     }
 
-    if (key != null) noteKeys.set(note.id, key);
+    if (key != null) {
+      note.key = key;
+      noteKeys.set(note.id, key);
+    }
 
     const el = document.createElement('div');
     el.className = 'absolute-note';
@@ -317,7 +326,10 @@
   }
 
   function persistNote(note) {
-    const key = noteKeys.get(note.id) || getStorageKey();
+    const key = note.key || getStorageKey();
+    if (note.key && note.key !== getStorageKey()) return;
+    note.key = key;
+    noteKeys.set(note.id, key);
     getNotes((notes) => {
       const idx = notes.findIndex((n) => n.id === note.id);
       if (idx !== -1) {
@@ -330,13 +342,15 @@
   }
 
   function deleteNote(id) {
+    const note = notesById.get(id) || { id };
     const clean = noteCleanups.get(id);
     if (clean) { clean(); noteCleanups.delete(id); }
     if (editingNoteId === id) editingNoteId = null;
     notesById.delete(id);
     const el = document.getElementById('absolute-note-' + id);
     if (el) el.remove();
-    const key = noteKeys.get(id) || getStorageKey();
+    const key = note.key || noteKeys.get(id) || getStorageKey();
+    if (note.key && note.key !== getStorageKey()) return;
     getNotes((notes) => {
       const filtered = notes.filter((n) => n.id !== id);
       saveNotes(filtered, key);
