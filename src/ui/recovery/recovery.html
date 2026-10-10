@@ -4,12 +4,22 @@
   <meta charset="utf-8">
   <title>Absolute Note</title>
   <style>
+    :root {
+      color-scheme: light;
+      --bg: #f5f5f5; --surface: #fff; --text: #333; --title: #444; --border: #ddd;
+      --hover: #e3f2fd; --hover-border: #90caf9; --active: #bbdefb; --card-shadow: var(--card-shadow);
+    }
+    :root[data-theme="dark"] {
+      color-scheme: dark;
+      --bg: #1e1f22; --surface: #2b2d31; --text: #e4e4e4; --title: #e8e8e8; --border: #444;
+      --hover: #1c3a52; --hover-border: #3a79a8; --active: #24506f; --card-shadow: rgba(0, 0, 0, 0.5);
+    }
     * { margin: 0; padding: 0; box-sizing: border-box; }
     body {
       font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
       font-size: 15px;
-      background: #f5f5f5;
-      color: #333;
+      background: var(--bg);
+      color: var(--text);
       min-height: 100vh;
       display: flex;
       justify-content: center;
@@ -18,16 +28,16 @@
     .card {
       width: 100%;
       max-width: 420px;
-      background: #fff;
+      background: var(--surface);
       border-radius: 10px;
       padding: 24px;
-      box-shadow: 0 2px 12px rgba(0, 0, 0, 0.08);
+      box-shadow: 0 2px 12px var(--card-shadow);
     }
     h1 {
       font-size: 20px;
       font-weight: 700;
       text-align: center;
-      color: #444;
+      color: var(--title);
       margin-bottom: 20px;
     }
     section { margin-bottom: 20px; }
@@ -37,17 +47,17 @@
       gap: 10px;
       width: 100%;
       padding: 12px 14px;
-      border: 1px solid #ddd;
+      border: 1px solid var(--border);
       border-radius: 8px;
-      background: #fff;
+      background: var(--surface);
       cursor: pointer;
       font-size: 14px;
-      color: #333;
+      color: var(--text);
       transition: background 0.12s, border-color 0.12s;
       text-align: left;
     }
-    .btn:hover { background: #e3f2fd; border-color: #90caf9; }
-    .btn:active { background: #bbdefb; }
+    .btn:hover { background: var(--hover); border-color: var(--hover-border); }
+    .btn:active { background: var(--active); }
     .btn .ico { font-size: 18px; width: 22px; text-align: center; }
     .btn .label { flex: 1; }
     .status-row {
@@ -61,7 +71,7 @@
       width: 18px;
       height: 18px;
       flex: 0 0 18px;
-      border: 3px solid #ddd;
+      border: 3px solid var(--border);
       border-top-color: #1565c0;
       border-radius: 50%;
       animation: spin 0.8s linear infinite;

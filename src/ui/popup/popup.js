@@ -2,11 +2,23 @@ import { DEFAULT_SETTINGS, FONT_SIZE_RANGE, SIZE_RANGE, clampInt } from '../../s
 import { ext } from '../../shared/ext.js';
 import { DEFAULT_LANG, getText, setLang } from '../../shared/i18n.js';
 import { MSG, sendToActiveTab } from '../../shared/messages.js';
-import { loadLang, loadSettings, saveLang, saveSettings } from '../../shared/store.js';
+import { loadLang, loadSettings, saveLang, saveSettings, saveTheme } from '../../shared/store.js';
+import { syncTheme } from '../../shared/theme.js';
 
 const $ = (id) => document.getElementById(id);
 
 const state = { hidden: false, hasNotes: false };
+let theme = 'light';
+
+// Shows the theme the button switches to.
+const ICON_MOON = '☾';
+const ICON_SUN = '☀';
+
+function updateThemeButton() {
+  const toDark = theme === 'light';
+  $('lbl-theme').textContent = getText(toDark ? 'theme_to_dark' : 'theme_to_light');
+  $('ico-theme').textContent = toDark ? ICON_MOON : ICON_SUN;
+}
 
 function updateButtons() {
   $('btn-hide').classList.toggle('btn--disabled', !state.hasNotes);
@@ -29,6 +41,7 @@ function applyLang() {
   $('btn-prefs-save').querySelector('.label').textContent = getText('save');
   $('btn-prefs-back').querySelector('.label').textContent = getText('back');
   updateButtons();
+  updateThemeButton();
 }
 
 function showView(name) {
@@ -91,6 +104,12 @@ $('btn-recovery').addEventListener('click', () => {
   window.close();
 });
 
+$('btn-theme').addEventListener('click', async () => {
+  theme = theme === 'light' ? 'dark' : 'light';
+  updateThemeButton();
+  await saveTheme(theme);
+});
+
 $('lang-select').addEventListener('change', () => {
   const lang = $('lang-select').value;
   setLang(lang);
@@ -103,6 +122,10 @@ $('lang-select').addEventListener('change', () => {
   const lang = (await loadLang()) || DEFAULT_LANG;
   $('lang-select').value = lang;
   setLang(lang);
+  syncTheme(document.documentElement, (next) => {
+    theme = next;
+    updateThemeButton();
+  });
   applyLang();
   const response = await sendToActiveTab({ type: MSG.GET_PAGE_STATE });
   if (response) {

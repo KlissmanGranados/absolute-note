@@ -1,6 +1,7 @@
 import { getText, setLang } from '../../shared/i18n.js';
 import { MSG, NOTE_CMD, listen, sendToRuntime, sendToTab } from '../../shared/messages.js';
 import { loadLang, loadNotes, onLangChanged, onNotesChanged } from '../../shared/store.js';
+import { syncTheme } from '../../shared/theme.js';
 import { renderOutlineList } from '../shared/outline-list.js';
 
 // Detached outline window. It reads the followed page's notes from storage and sends every action
@@ -92,6 +93,7 @@ onLangChanged((lang) => {
 });
 
 (async () => {
+  syncTheme(document.documentElement);
   const lang = await loadLang();
   if (lang) setLang(lang);
   els.addNote.textContent = getText('create_note');

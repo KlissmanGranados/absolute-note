@@ -192,3 +192,42 @@
 .absolute-note-outline-create:hover {
   background: #0d47a1;
 }
+
+/* Dark theme: the host element carries data-theme (set by content/index.js). */
+:host([data-theme='dark']) .absolute-note-outline {
+  background: #2b2d31;
+  border-left-color: #444;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.5);
+  color: #e4e4e4;
+  color-scheme: dark;
+}
+:host([data-theme='dark']) .absolute-note-outline-header {
+  border-bottom-color: #444;
+}
+:host([data-theme='dark']) .absolute-note-outline-footer {
+  border-top-color: #444;
+}
+:host([data-theme='dark']) .absolute-note-outline-item:hover {
+  background: #383a40;
+}
+:host([data-theme='dark']) :is(.absolute-note-outline-close:hover, .absolute-note-outline-eject:hover) {
+  background: rgba(255, 255, 255, 0.12);
+}
+:host([data-theme='dark']) :is(.absolute-note-outline-lock, .absolute-note-outline-edit) {
+  color: #aaa;
+}
+:host([data-theme='dark']) :is(.absolute-note-outline-lock:hover, .absolute-note-outline-edit:hover, .absolute-note-outline-del:hover) {
+  background: rgba(255, 255, 255, 0.12);
+}
+:host([data-theme='dark']) :is(.absolute-note-outline-lock:hover, .absolute-note-outline-edit:hover) {
+  color: #64b5f6;
+}
+:host([data-theme='dark']) .absolute-note-outline-del:hover {
+  color: #ef9a9a;
+}
+:host([data-theme='dark']) .absolute-note-outline-del {
+  color: #888;
+}
+:host([data-theme='dark']) .absolute-note-outline-create:hover {
+  background: #1976d2;
+}

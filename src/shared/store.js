@@ -3,6 +3,7 @@ import {
   DEFAULT_SETTINGS,
   FONT_SIZE_RANGE,
   LANG_KEY,
+  THEME_KEY,
   SETTINGS_KEY,
   SIZE_RANGE,
   clampInt,
@@ -111,6 +112,22 @@ export function saveLang(lang) {
 export function onLangChanged(callback) {
   const listener = (changes, area) => {
     if (area === 'local' && changes[LANG_KEY]) callback(changes[LANG_KEY].newValue);
+  };
+  ext().storage.onChanged.addListener(listener);
+  return () => ext().storage.onChanged.removeListener(listener);
+}
+
+export async function loadTheme() {
+  return (await read(THEME_KEY)) || null;
+}
+
+export function saveTheme(theme) {
+  return ext().storage.local.set({ [THEME_KEY]: theme });
+}
+
+export function onThemeChanged(callback) {
+  const listener = (changes, area) => {
+    if (area === 'local' && changes[THEME_KEY]) callback(changes[THEME_KEY].newValue);
   };
   ext().storage.onChanged.addListener(listener);
   return () => ext().storage.onChanged.removeListener(listener);

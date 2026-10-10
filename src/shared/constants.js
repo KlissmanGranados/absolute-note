@@ -1,6 +1,7 @@
 export const PREFIX = 'absolute_note_';
 export const SETTINGS_KEY = PREFIX + 'settings';
 export const LANG_KEY = PREFIX + 'lang';
+export const THEME_KEY = PREFIX + 'theme';
 export const SCHEMA_KEY = PREFIX + 'schema';
 // Lives in storage.session (background only).
 export const OUTLINE_CTX_KEY = PREFIX + 'outline_ctx';

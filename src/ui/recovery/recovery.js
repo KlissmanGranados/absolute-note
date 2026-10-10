@@ -2,6 +2,7 @@ import { collectNotes, isImportPayload, mergeImport } from '../../shared/backup.
 import { getText, setLang } from '../../shared/i18n.js';
 import { sanitizeHtml } from '../../shared/sanitize.js';
 import { applyChanges, loadAll, loadLang } from '../../shared/store.js';
+import { syncTheme } from '../../shared/theme.js';
 
 const $ = (id) => document.getElementById(id);
 
@@ -86,6 +87,7 @@ $('file-input').addEventListener('change', async () => {
 });
 
 (async () => {
+  syncTheme(document.documentElement);
   setLang((await loadLang()) || 'en');
   $('lbl-title').textContent = getText('recovery');
   $('lbl-export').textContent = getText('export_notes');

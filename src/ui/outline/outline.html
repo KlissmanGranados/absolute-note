@@ -11,6 +11,22 @@
         --an-muted: #777;
         --an-accent: #1565c0;
         --an-danger: #c00;
+        --an-hover: #f5f5f5;
+        --an-icon-hover: rgba(0,0,0,0.08);
+        --an-accent-hover: #0d47a1;
+        color-scheme: light;
+      }
+      :root[data-theme="dark"] {
+        --an-bg: #2b2d31;
+        --an-border: #444;
+        --an-text: #e4e4e4;
+        --an-muted: #aaa;
+        --an-accent: #1565c0;
+        --an-danger: #ef9a9a;
+        --an-hover: #383a40;
+        --an-icon-hover: rgba(255,255,255,0.12);
+        --an-accent-hover: #1976d2;
+        color-scheme: dark;
       }
       * { box-sizing: border-box; }
       html, body { height: 100%; margin: 0; }
@@ -43,7 +59,7 @@
         cursor: pointer;
         transition: background 0.12s;
       }
-      .absolute-note-outline-item:hover { background: #f5f5f5; }
+      .absolute-note-outline-item:hover { background: var(--an-hover); }
       .absolute-note-outline-dot { flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-top: 3px; }
       .absolute-note-outline-label { word-break: break-word; line-height: 1.4; flex: 1; }
       .absolute-note-outline-lock,
@@ -56,14 +72,14 @@
       }
       .absolute-note-outline-lock:hover,
       .absolute-note-outline-edit:hover,
-      .absolute-note-outline-del:hover { background: rgba(0,0,0,0.08); color: var(--an-accent); }
+      .absolute-note-outline-del:hover { background: var(--an-icon-hover); color: var(--an-accent); }
       .absolute-note-outline-del:hover { color: var(--an-danger); }
       .add-wrap { padding: 10px; border-top: 1px solid var(--an-border); flex-shrink: 0; }
       .add {
         width: 100%; padding: 8px 12px; border: none; border-radius: 4px;
         background: var(--an-accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
       }
-      .add:hover { background: #0d47a1; }
+      .add:hover { background: var(--an-accent-hover); }
     </style>
   </head>
   <body>

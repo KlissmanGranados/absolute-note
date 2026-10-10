@@ -2,6 +2,7 @@ import { isContextAlive } from '../shared/ext.js';
 import { setLang } from '../shared/i18n.js';
 import { MSG, NOTE_CMD, listen, sendToRuntime } from '../shared/messages.js';
 import * as store from '../shared/store.js';
+import { watchTheme } from '../shared/theme.js';
 import { normalizePageUrl } from '../shared/url.js';
 import { pageElementAt } from './container.js';
 import { NotesController } from './controller.js';
@@ -46,6 +47,7 @@ class ContentApp {
     this.outline = null;
     this.host = null;
     this.hostRoot = null;
+    this.theme = 'light';
     // Notes found in storage for the page, before they are rendered (rendering waits for the DOM).
     this.storedNoteCount = 0;
     this.generation = 0;
@@ -60,6 +62,7 @@ class ContentApp {
 
     const lang = await store.loadLang();
     if (lang) setLang(lang);
+    watchTheme((theme) => this.setTheme(theme));
     store.onLangChanged((next) => {
       setLang(next);
       this.applyLang();
@@ -185,6 +188,12 @@ class ContentApp {
     this.controller.createAt(window.innerWidth / 2, window.innerHeight / 2).catch(() => {});
   }
 
+  // Applied to the host element (which the outline panel's stylesheet reads) once it exists.
+  setTheme(theme) {
+    this.theme = theme;
+    if (this.host) this.host.setAttribute('data-theme', theme);
+  }
+
   // Fixed, full-viewport layer for the extension's own UI (the outline panel), isolated from the
   // page's CSS in a shadow root.
   ensureHostRoot() {
@@ -193,6 +202,7 @@ class ContentApp {
     this.host.id = HOST_ID;
     this.host.className = 'absolute-note-host';
     this.hostRoot = attachStyledShadow(this.host, outlinePanelCss);
+    this.host.setAttribute('data-theme', this.theme);
     document.documentElement.appendChild(this.host);
     return this.hostRoot;
   }

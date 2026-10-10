@@ -20,6 +20,7 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 - **Lock/unlock** individual notes from the outline (disables editing and dragging)
 - **Per-page persistence** in `chrome.storage.local`; in-page anchors (`#section`) and tracking parameters (`utm_*`, `fbclid`, …) don't change the page a note belongs to
 - **Live sync**: tabs showing the same page, the outline window and imports update each other
+- **Light/dark theme**: a button in the popup switches the extension's UI (popup, Recovery, outline panel and window) between themes; it follows the browser's color scheme until you pick one
 - **Customizable defaults**: set width, height and font size for new notes from the popup
 - **Resizable**: drag the bottom-right corner to change width and height; size and position persist across reloads
 - **SPA support** (React, etc.): detects URL changes and reloads notes automatically
@@ -180,6 +181,7 @@ Other keys:
 |---|---|
 | `absolute_note_settings` | New-note preferences: `{ "width": 170, "height": 325, "fontSize": 14 }` |
 | `absolute_note_lang` | UI language (`en` / `es`) |
+| `absolute_note_theme` | `"light"` or `"dark"`; absent until chosen (then the browser's color scheme is used) |
 | `absolute_note_outline_<url>` | `"visible"` while the outline panel is open on that page (removed when closed) |
 | `absolute_note_hide_<url>` | `"hidden"` while notes are hidden on that page (removed when shown) |
 | `absolute_note_schema` | Storage schema version; older data is migrated on install/update |
