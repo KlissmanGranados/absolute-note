@@ -1,7 +1,8 @@
 import { FONT_SIZE_RANGE } from '../shared/constants.js';
-import { getText } from '../shared/i18n.js';
+import { getLang, getText } from '../shared/i18n.js';
 import { sanitizeHtml } from '../shared/sanitize.js';
 import toolbarCss from './css/inline-toolbar.css';
+import { Dictation, insertDictatedText } from './dictation.js';
 import { attachStyledShadow } from './shadow.js';
 
 const SIZE_OPTIONS = [12, 14, 16, 18, 24, 32];
@@ -13,6 +14,7 @@ export class InlineEditor {
     this.view = null;
     this.savedRange = null;
     this.toolbar = null;
+    this.dictation = null;
     this.onFocusOut = this.onFocusOut.bind(this);
   }
 
@@ -51,6 +53,8 @@ export class InlineEditor {
     view.el.removeEventListener('focusout', this.onFocusOut);
     view.body.contentEditable = 'false';
     view.body.classList.remove('absolute-note-body--editing');
+    if (this.dictation) this.dictation.stop({ abort: true });
+    this.dictation = null;
     if (this.toolbar) this.toolbar.remove();
     this.toolbar = null;
     if (commit) this.onCommit(view.id, sanitizeHtml(view.body.innerHTML));
@@ -78,6 +82,8 @@ export class InlineEditor {
       this.commandButton('U', 'underline', getText('underline')),
       this.sizeSelect(note.fontSize || 14),
     );
+    const mic = this.micButton();
+    if (mic) root.appendChild(mic);
 
     const done = document.createElement('button');
     done.type = 'button';
@@ -88,6 +94,41 @@ export class InlineEditor {
     done.addEventListener('click', () => this.finish());
     root.appendChild(done);
     return bar;
+  }
+
+  // Microphone toggle; absent where the browser has no speech recognition (e.g. Firefox).
+  micButton() {
+    const button = document.createElement('button');
+    button.type = 'button';
+    button.className = 'absolute-note-inline-mic';
+    button.textContent = '🎤';
+    button.title = getText('dictate');
+    const setListening = (on) => {
+      button.classList.toggle('listening', on);
+      button.title = getText(on ? 'dictate_stop' : 'dictate');
+    };
+    const dictation = new Dictation({
+      lang: getLang(),
+      onText: (text) => {
+        if (this.view) insertDictatedText(this.view.body, text, this.savedRange);
+      },
+      onState: setListening,
+      onError: (code) => {
+        button.classList.add('error');
+        const denied = code === 'not-allowed' || code === 'service-not-allowed';
+        button.title = denied ? getText('dictate_denied') : getText('dictate_failed', { error: code });
+      },
+    });
+    if (!dictation.supported) return null;
+    this.dictation = dictation;
+    // Keep focus (and the caret) in the note body while dictating.
+    button.addEventListener('mousedown', (e) => e.preventDefault());
+    button.addEventListener('click', () => {
+      button.classList.remove('error');
+      if (this.view) this.view.body.focus();
+      dictation.toggle();
+    });
+    return button;
   }
 
   commandButton(label, command, title) {
