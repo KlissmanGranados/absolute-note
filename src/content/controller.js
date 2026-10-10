@@ -5,6 +5,7 @@ import {
   claimContainer,
   findScrollContainer,
   isDefaultContainer,
+  mountPoint,
   originOf,
   pageElementAt,
   releaseContainer,
@@ -114,7 +115,7 @@ export class NotesController {
       onResizeStart: (e) => this.startResize(id, e),
     });
     this.views.set(id, view);
-    (this.container || document.documentElement).appendChild(view.el);
+    mountPoint(this.container).appendChild(view.el);
     return view;
   }
 
@@ -304,9 +305,9 @@ export class NotesController {
     this.container = next;
     claimContainer(next);
     for (const [id, view] of this.views) {
-      if (view.el.parentNode === next) continue;
+      if (view.el.parentNode === mountPoint(next)) continue;
       const rect = preservePosition && view.el.isConnected ? view.el.getBoundingClientRect() : null;
-      next.appendChild(view.el);
+      mountPoint(next).appendChild(view.el);
       if (!rect || !rect.width) continue;
       const origin = originOf(view.el);
       this.update(id, { posX_px: rect.left + rect.width / 2 - origin.x, posY_px: rect.top - origin.y });

@@ -1,6 +1,7 @@
 import { FONT_SIZE_RANGE } from '../shared/constants.js';
 import { getLang, getText } from '../shared/i18n.js';
 import { sanitizeHtml } from '../shared/sanitize.js';
+import { htmlToText } from '../shared/text.js';
 import toolbarCss from './css/inline-toolbar.css';
 import { Dictation, insertDictatedText } from './dictation.js';
 import { attachStyledShadow } from './shadow.js';
@@ -57,7 +58,11 @@ export class InlineEditor {
     this.dictation = null;
     if (this.toolbar) this.toolbar.remove();
     this.toolbar = null;
-    if (commit) this.onCommit(view.id, sanitizeHtml(view.body.innerHTML));
+    if (commit) {
+      // Firefox leaves a lone <br> in an emptied editable; that is an empty note.
+      const html = sanitizeHtml(view.body.innerHTML);
+      this.onCommit(view.id, htmlToText(html) ? html : '');
+    }
   }
 
   onFocusOut(e) {

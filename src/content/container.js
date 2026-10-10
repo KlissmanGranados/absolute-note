@@ -24,6 +24,17 @@ function isInsideOverlay(el) {
   return false;
 }
 
+// Where notes are attached for a container. The page's own scroll (the <html> element) is served
+// from <body>: Firefox can't delete text (Backspace/Delete do nothing) in an editable element that
+// is a direct child of <html>, outside <body>. With a statically positioned <body> coordinates stay
+// relative to the document origin, as before; with a positioned one they are relative to the body's
+// padding box, like in any other container.
+export function mountPoint(container) {
+  const root = document.documentElement;
+  if (container && container !== root) return container;
+  return document.body || root;
+}
+
 export function isDefaultContainer(el) {
   return !el || el === document.documentElement || el === document.body;
 }

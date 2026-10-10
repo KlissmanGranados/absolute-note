@@ -169,7 +169,7 @@ Each note is stored with this structure:
 ```
 
 - `text` holds **sanitized HTML** (legacy plain-text notes are handled automatically)
-- `posX_px` is the note's horizontal center and `posY_px` its top edge, relative to the page's scroll container
+- `posX_px` is the note's horizontal center and `posY_px` its top edge, relative to the page's scroll container (notes are attached under `<body>`: Firefox can't delete text in an editable element outside it; if a page's `<body>` is positioned, coordinates are relative to it)
 - `w_px`/`h_px`/`fontSize` are optional; `h_px` is the minimum height set from preferences or the resize grip (notes grow with their text)
 
 Notes are stored in `chrome.storage.local` with one key per page. The page URL is normalized: in-page anchors and tracking parameters are removed, while hash routes such as `#/inbox` are kept.
