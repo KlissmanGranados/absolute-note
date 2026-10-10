@@ -80,8 +80,3 @@ export function sanitizedNodes(input) {
   const html = sanitizeHtml(input);
   return html ? Array.from(new DOMParser().parseFromString(html, 'text/html').body.childNodes) : [];
 }
-
-export function htmlToText(html) {
-  if (!html) return '';
-  return new DOMParser().parseFromString(html, 'text/html').body.textContent || '';
-}

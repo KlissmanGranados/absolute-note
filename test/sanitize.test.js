@@ -1,5 +1,6 @@
 import { describe, expect, it } from 'vitest';
-import { htmlToText, sanitizeHtml } from '../src/shared/sanitize.js';
+import { sanitizeHtml } from '../src/shared/sanitize.js';
+import { htmlToText } from '../src/shared/text.js';
 
 // Parses sanitizer output and returns every element and attribute it contains.
 function inspect(html) {

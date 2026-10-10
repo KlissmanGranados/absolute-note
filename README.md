@@ -18,6 +18,7 @@ Click the extension icon → "Recovery" → export/import all notes as JSON
 - **Drag** from the header without interfering with page scroll
 - **Rich text editing** inside the note: bold, italic, underline and font size
 - **Voice dictation**: a 🎤 button in the editing toolbar turns speech into text at the caret, and you keep typing as usual (Chrome only; hidden where the browser has no speech recognition, e.g. Firefox)
+- **Word count**: every note shows its number of words in a footer that is always visible and updates as you type
 - **Lock/unlock** individual notes from the outline (disables editing and dragging)
 - **Per-page persistence** in `chrome.storage.local`; in-page anchors (`#section`) and tracking parameters (`utm_*`, `fbclid`, …) don't change the page a note belongs to
 - **Live sync**: tabs showing the same page, the outline window and imports update each other

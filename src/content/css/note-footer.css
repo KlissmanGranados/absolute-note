@@ -1,0 +1,21 @@
+/* Shadow root of the note footer (.absolute-note-footer): the word count, always visible. */
+:host {
+  all: initial !important;
+  display: flex !important;
+  align-items: center !important;
+  flex: 0 0 auto !important;
+  box-sizing: border-box !important;
+  height: 22px !important;
+  margin: 0 !important;
+  /* Right padding leaves room for the resize grip. */
+  padding: 0 22px 0 10px !important;
+  border-top: 1px solid rgba(0, 0, 0, 0.1) !important;
+  border-radius: 0 0 4px 4px !important;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 11px !important;
+  line-height: 1 !important;
+  color: rgba(0, 0, 0, 0.6) !important;
+  user-select: none !important;
+  white-space: nowrap !important;
+  overflow: hidden !important;
+}

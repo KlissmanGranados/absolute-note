@@ -1,6 +1,6 @@
 import { COLORS } from '../../shared/constants.js';
 import { getText } from '../../shared/i18n.js';
-import { htmlToText } from '../../shared/sanitize.js';
+import { htmlToText } from '../../shared/text.js';
 
 const LABEL_MAX = 50;
 

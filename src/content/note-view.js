@@ -1,7 +1,9 @@
 import { COLORS } from '../shared/constants.js';
 import { getText } from '../shared/i18n.js';
 import { sanitizedNodes } from '../shared/sanitize.js';
+import { countWords } from '../shared/text.js';
 import headerCss from './css/note-header.css';
+import footerCss from './css/note-footer.css';
 import gripCss from './css/resize-grip.css';
 import { attachStyledShadow, eventPathMatches, setImportant } from './shadow.js';
 
@@ -52,12 +54,20 @@ export class NoteView {
     this.body.className = 'absolute-note-body';
     this.body.contentEditable = 'false';
 
+    this.footer = document.createElement('div');
+    this.footer.className = 'absolute-note-footer';
+    this.footerLabel = document.createElement('span');
+    attachStyledShadow(this.footer, footerCss).appendChild(this.footerLabel);
+    this.words = 0;
+    // Typing, pasting and dictation all fire input: the count follows the text live.
+    this.body.addEventListener('input', () => this.setWordCount(countWords(this.body.innerHTML)));
+
     this.grip = document.createElement('div');
     this.grip.className = 'absolute-note-resize';
     attachStyledShadow(this.grip, gripCss);
     this.grip.addEventListener('pointerdown', onResizeStart);
 
-    el.append(this.header, this.body, this.grip);
+    el.append(this.header, this.body, this.footer, this.grip);
 
     el.addEventListener('pointerdown', onPointerDown);
     el.addEventListener('dblclick', (e) => {
@@ -87,7 +97,13 @@ export class NoteView {
     if (!keepText && note.text !== this.renderedText) {
       this.body.replaceChildren(...sanitizedNodes(note.text));
       this.renderedText = note.text;
+      this.setWordCount(countWords(note.text));
     }
+  }
+
+  setWordCount(count) {
+    this.words = count;
+    this.footerLabel.textContent = getText(count === 1 ? 'words_one' : 'words_other', { count });
   }
 
   setPosition(x, y) {
@@ -121,6 +137,7 @@ export class NoteView {
   applyLang() {
     this.deleteBtn.title = getText('delete');
     this.body.dataset.placeholder = getText('outline_empty');
+    this.setWordCount(this.words);
   }
 
   destroy() {
