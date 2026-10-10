@@ -1,0 +1,94 @@
+name: Release
+
+# Builds the browser packages and attaches them to the GitHub release of a tag:
+#   absolute-note-chrome-<version>.zip
+#   absolute-note-firefox-<version>.zip
+# GitHub adds its own "Source code" archives to every release; those can't be renamed.
+#
+# Runs when a version tag is pushed (git tag -a v1.2.0 ... && git push origin v1.2.0).
+# For a tag that already exists, run it from the Actions tab ("Run workflow") and type the tag.
+
+on:
+  push:
+    tags:
+      - 'v*'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Existing tag to release (e.g. v1.1.0)'
+        required: true
+        type: string
+
+permissions:
+  contents: write
+
+concurrency:
+  group: release-${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+  cancel-in-progress: false
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    env:
+      TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.tag || github.ref_name }}
+      GH_TOKEN: ${{ github.token }}
+    steps:
+      - name: Check the tag name
+        run: |
+          if ! [[ "$TAG" =~ ^v[0-9]+\.[0-9]+\.[0-9]+(-[0-9A-Za-z.]+)?$ ]]; then
+            echo "::error::'$TAG' is not a version tag like v1.2.3 or v1.2.3-beta.1"
+            exit 1
+          fi
+
+      - uses: actions/checkout@v4
+        with:
+          ref: refs/tags/${{ env.TAG }}
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+
+      - name: Check that the tag matches package.json
+        run: |
+          VERSION=$(node -p "require('./package.json').version")
+          if [ "v$VERSION" != "$TAG" ]; then
+            echo "::error::Tag $TAG does not match package.json version $VERSION. Bump the version, commit, and tag again."
+            exit 1
+          fi
+
+      - run: npm ci
+      - run: npx eslint .
+      - run: npm test
+
+      - name: Build and package both browsers
+        run: npm run package
+
+      - name: Check the packages
+        run: |
+          VERSION="${TAG#v}"
+          for browser in chrome firefox; do
+            FILE="dist/packages/absolute-note-$browser-$VERSION.zip"
+            test -f "$FILE" || { echo "::error::Missing $FILE"; exit 1; }
+            unzip -p "$FILE" manifest.json | node -e '
+              let s = ""; process.stdin.on("data", (d) => (s += d)).on("end", () => {
+                const v = JSON.parse(s).version;
+                if (v !== process.argv[1]) { console.error("manifest version " + v + " != " + process.argv[1]); process.exit(1); }
+              });' "$VERSION"
+          done
+          ls -l dist/packages
+
+      - name: Publish the release
+        run: |
+          FLAGS=()
+          if [[ "$TAG" == *-* ]]; then FLAGS+=(--prerelease); fi
+          if gh release view "$TAG" >/dev/null 2>&1; then
+            # Release created by hand from the web: just attach the packages.
+            gh release upload "$TAG" dist/packages/*.zip --clobber
+          else
+            gh release create "$TAG" dist/packages/*.zip \
+              --title "Absolute Note ${TAG#v}" \
+              --notes-from-tag \
+              --verify-tag \
+              "${FLAGS[@]}"
+          fi

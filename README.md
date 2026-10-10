@@ -64,6 +64,14 @@ npm run build
 | `npm run start:firefox` / `npm run start:chrome` | Launches a browser with the extension loaded (`web-ext run`) |
 | `npm run package` | Zips both builds into `dist/packages` |
 
+### Releasing
+
+1. Bump the version: `npm version <x.y.z> --no-git-tag-version`, commit it, and merge to `master`.
+2. Tag it and push: `git tag -a v<x.y.z> -m "notes" && git push origin v<x.y.z>`.
+3. The **Release** workflow (`.github/workflows/release.yml`) lints, tests and builds, then attaches `absolute-note-chrome-<x.y.z>.zip` and `absolute-note-firefox-<x.y.z>.zip` to the GitHub release (created from the tag's message if it doesn't exist). It fails if the tag doesn't match the version in `package.json`.
+
+For a tag that already exists, run the workflow from the Actions tab (*Run workflow*) and type the tag. GitHub's own "Source code" archives are added to every release automatically and can't be renamed.
+
 ### Project layout
 
 | Path | Purpose |
