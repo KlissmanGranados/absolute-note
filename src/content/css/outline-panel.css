@@ -1,0 +1,194 @@
+/* Shadow root of the extension's fixed host (#absolute-note-host): the in-page outline panel.
+   The list items come from ui/shared/outline-list.js, shared with the detached outline window. */
+* {
+  box-sizing: border-box;
+}
+
+.absolute-note-outline {
+  pointer-events: auto;
+  box-sizing: border-box;
+  position: fixed;
+  top: 0;
+  right: 0;
+  width: 260px;
+  height: 100%;
+  z-index: 2147483646;
+  background: #fff;
+  border-left: 1px solid #ddd;
+  box-shadow: -2px 0 12px rgba(0, 0, 0, 0.12);
+  display: flex;
+  flex-direction: column;
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  font-size: 13px;
+  color: #333;
+}
+
+.absolute-note-outline-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 12px;
+  border-bottom: 1px solid #eee;
+  font-weight: 600;
+  font-size: 14px;
+}
+
+.absolute-note-outline-close {
+  all: unset;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 20px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.absolute-note-outline-close:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.absolute-note-outline-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  flex-shrink: 0;
+}
+
+.absolute-note-outline-eject {
+  all: unset;
+  width: 24px;
+  height: 24px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.15s;
+}
+
+.absolute-note-outline-eject:hover {
+  background: rgba(0, 0, 0, 0.08);
+}
+
+.absolute-note-outline-list {
+  flex: 1;
+  overflow-y: auto;
+  padding: 8px 0;
+}
+
+.absolute-note-outline-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  padding: 8px 12px;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.absolute-note-outline-item:hover {
+  background: #f5f5f5;
+}
+
+.absolute-note-outline-dot {
+  flex-shrink: 0;
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid;
+  margin-top: 3px;
+}
+
+.absolute-note-outline-label {
+  word-break: break-word;
+  line-height: 1.4;
+}
+
+.absolute-note-outline-header span {
+  min-width: 0;
+}
+
+.absolute-note-outline-lock {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  border-radius: 50%;
+  margin-left: auto;
+  transition: background 0.12s, color 0.12s;
+}
+
+.absolute-note-outline-lock:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1565c0;
+}
+
+.absolute-note-outline-edit {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 13px;
+  color: #555;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.12s, color 0.12s;
+}
+
+.absolute-note-outline-edit:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #1565c0;
+}
+
+.absolute-note-outline-del {
+  flex-shrink: 0;
+  width: 18px;
+  height: 18px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 16px;
+  font-weight: 700;
+  color: #999;
+  cursor: pointer;
+  border-radius: 50%;
+  transition: background 0.12s, color 0.12s;
+}
+
+.absolute-note-outline-del:hover {
+  background: rgba(0, 0, 0, 0.08);
+  color: #c00;
+}
+
+.absolute-note-outline-footer {
+  padding: 10px;
+  border-top: 1px solid #eee;
+}
+
+.absolute-note-outline-create {
+  font-family: inherit;
+  width: 100%;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 4px;
+  background: #1565c0;
+  color: #fff;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.absolute-note-outline-create:hover {
+  background: #0d47a1;
+}

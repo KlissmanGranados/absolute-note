@@ -1,0 +1,26 @@
+/* Shadow root of the resize grip (.absolute-note-resize). */
+:host {
+  all: initial !important;
+  position: absolute !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  width: 16px !important;
+  height: 16px !important;
+  margin: 0 !important;
+  cursor: nwse-resize !important;
+  touch-action: none !important;
+  z-index: 2 !important;
+}
+
+:host::before {
+  content: '' !important;
+  position: absolute !important;
+  right: 2px !important;
+  bottom: 2px !important;
+  width: 9px !important;
+  height: 9px !important;
+  box-sizing: content-box !important;
+  border-right: 2px solid rgba(0, 0, 0, 0.35) !important;
+  border-bottom: 2px solid rgba(0, 0, 0, 0.35) !important;
+  border-bottom-right-radius: 2px !important;
+}

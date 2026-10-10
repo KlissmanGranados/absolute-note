@@ -1,0 +1,27 @@
+{
+  "name": "absolute-note",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Persistent sticky notes on any web page (Chrome and Firefox, Manifest V3).",
+  "license": "GPL-3.0-only",
+  "type": "module",
+  "scripts": {
+    "build": "node scripts/build.mjs",
+    "watch": "node scripts/build.mjs --watch",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "lint": "eslint . && npm run build && web-ext lint --source-dir dist/firefox",
+    "start:firefox": "web-ext run --source-dir dist/firefox",
+    "start:chrome": "web-ext run --target chromium --source-dir dist/chrome",
+    "package": "npm run build && web-ext build --overwrite-dest --source-dir dist/firefox --artifacts-dir dist/packages --filename absolute-note-firefox-{version}.zip && web-ext build --overwrite-dest --source-dir dist/chrome --artifacts-dir dist/packages --filename absolute-note-chrome-{version}.zip"
+  },
+  "devDependencies": {
+    "@eslint/js": "10.0.1",
+    "esbuild": "0.28.2",
+    "eslint": "10.12.0",
+    "globals": "17.13.0",
+    "jsdom": "30.1.2",
+    "vitest": "5.0.3",
+    "web-ext": "10.7.0"
+  }
+}

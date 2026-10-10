@@ -22,6 +22,7 @@
         display: flex;
         flex-direction: column;
       }
+      [hidden] { display: none !important; }
       header {
         display: flex;
         align-items: center;
@@ -32,9 +33,9 @@
       }
       header .title { font-weight: 600; font-size: 14px; }
       #empty { color: var(--an-muted); padding: 24px 16px; text-align: center; }
-      #lost { color: var(--an-danger); padding: 24px 16px; text-align: center; display: none; }
-      ul.notes { list-style: none; margin: 0; padding: 8px 0; flex: 1; overflow-y: auto; }
-      li.item {
+      #lost { color: var(--an-danger); padding: 24px 16px; text-align: center; }
+      .notes { margin: 0; padding: 8px 0; flex: 1; overflow-y: auto; }
+      .absolute-note-outline-item {
         display: flex;
         align-items: flex-start;
         gap: 8px;
@@ -42,38 +43,39 @@
         cursor: pointer;
         transition: background 0.12s;
       }
-      li.item:hover { background: #f5f5f5; }
-      .dot { flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-top: 3px; }
-      .label { word-break: break-word; line-height: 1.4; flex: 1; }
-      .act {
+      .absolute-note-outline-item:hover { background: #f5f5f5; }
+      .absolute-note-outline-dot { flex-shrink: 0; width: 12px; height: 12px; border-radius: 50%; border: 2px solid; margin-top: 3px; }
+      .absolute-note-outline-label { word-break: break-word; line-height: 1.4; flex: 1; }
+      .absolute-note-outline-lock,
+      .absolute-note-outline-edit,
+      .absolute-note-outline-del {
         flex-shrink: 0;
         width: 18px; height: 18px;
         display: inline-flex; align-items: center; justify-content: center;
         font-size: 13px; color: var(--an-muted); cursor: pointer; border-radius: 50%;
       }
-      .act:hover { background: rgba(0,0,0,0.08); color: var(--an-accent); }
-      .act.del:hover { color: var(--an-danger); }
+      .absolute-note-outline-lock:hover,
+      .absolute-note-outline-edit:hover,
+      .absolute-note-outline-del:hover { background: rgba(0,0,0,0.08); color: var(--an-accent); }
+      .absolute-note-outline-del:hover { color: var(--an-danger); }
       .add-wrap { padding: 10px; border-top: 1px solid var(--an-border); flex-shrink: 0; }
       .add {
         width: 100%; padding: 8px 12px; border: none; border-radius: 4px;
         background: var(--an-accent); color: #fff; font-size: 13px; font-weight: 600; cursor: pointer;
       }
       .add:hover { background: #0d47a1; }
-      #status { color: #2e7d32; padding: 4px 12px; min-height: 18px; font-size: 12px; flex-shrink: 0; }
     </style>
   </head>
   <body>
     <header>
       <span class="title" id="title">Outline</span>
     </header>
-    <div id="empty" style="display:none"></div>
-    <div id="lost" style="display:none"></div>
-    <ul class="notes" id="notes"></ul>
+    <div id="empty" hidden></div>
+    <div id="lost" hidden></div>
+    <div class="notes" id="notes"></div>
     <div class="add-wrap">
       <button type="button" class="add" id="add-note"></button>
     </div>
-    <div id="status"></div>
-    <script src="locales.js"></script>
     <script src="outline.js"></script>
   </body>
 </html>

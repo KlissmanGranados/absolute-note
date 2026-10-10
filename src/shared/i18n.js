@@ -1,4 +1,4 @@
-var LOCALES = {
+const LOCALES = {
   en: {
     lock: 'Lock note',
     unlock: 'Unlock note',
@@ -15,7 +15,6 @@ var LOCALES = {
     outline_empty: '(no text)',
     no_notes_export: 'No notes to export.',
     export_ok: 'Exported {count} note(s) successfully.',
-    import_ok: 'Import completed. {count} note(s) added.',
     import_summary: 'Import completed. {count} note(s) added — {pages} page(s), {total} note(s) in storage.',
     import_invalid: 'Error: the file does not contain valid JSON.',
     recovery: 'Recovery',
@@ -27,13 +26,10 @@ var LOCALES = {
     prefs_saved: 'Settings saved.',
     back: 'Back',
     save: 'Save',
-    cancel: 'Cancel',
-    edit_note: 'Edit note',
     bold: 'Bold',
     italic: 'Italic',
     underline: 'Underline',
     font_size: 'Font size',
-    clear_format: 'Clear formatting',
     create_note: 'Create note',
     close: 'Close',
     eject_outline: 'Open outline in a window',
@@ -56,7 +52,6 @@ var LOCALES = {
     outline_empty: '(sin texto)',
     no_notes_export: 'No hay notas para exportar.',
     export_ok: 'Exportadas {count} nota(s) correctamente.',
-    import_ok: 'Importación completada. {count} nota(s) agregada(s).',
     import_summary: 'Importación completada. {count} nota(s) agregada(s) — {pages} página(s), {total} nota(s) en storage.',
     import_invalid: 'Error: el archivo no contiene JSON válido.',
     recovery: 'Recuperación',
@@ -68,13 +63,10 @@ var LOCALES = {
     prefs_saved: 'Ajustes guardados.',
     back: 'Volver',
     save: 'Guardar',
-    cancel: 'Cancelar',
-    edit_note: 'Editar nota',
     bold: 'Negrita',
     italic: 'Cursiva',
     underline: 'Subrayado',
     font_size: 'Tamaño de fuente',
-    clear_format: 'Limpiar formato',
     create_note: 'Crear nota',
     close: 'Cerrar',
     eject_outline: 'Abrir esquema en una ventana',
@@ -83,18 +75,22 @@ var LOCALES = {
   },
 };
 
-var __lang = 'en';
+export const DEFAULT_LANG = 'en';
 
-function setLang(lang) {
-  if (LOCALES[lang]) __lang = lang;
+let currentLang = DEFAULT_LANG;
+
+export function setLang(lang) {
+  if (LOCALES[lang]) currentLang = lang;
 }
 
-function getText(key, replacements) {
-  var str = (LOCALES[__lang] && LOCALES[__lang][key]) || LOCALES['en'][key] || key;
+export function getLang() {
+  return currentLang;
+}
+
+export function getText(key, replacements) {
+  let str = LOCALES[currentLang][key] || LOCALES[DEFAULT_LANG][key] || key;
   if (replacements) {
-    str = str.replace(/\{(\w+)\}/g, function (m, name) {
-      return replacements[name] !== undefined ? replacements[name] : m;
-    });
+    str = str.replace(/\{(\w+)\}/g, (match, name) => (replacements[name] !== undefined ? replacements[name] : match));
   }
   return str;
 }

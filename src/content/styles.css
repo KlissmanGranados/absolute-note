@@ -1,0 +1,157 @@
+/*
+ * Light-DOM styles: the note element itself (it has to live inside the page's scroll container),
+ * its editable body and the host of the extension's fixed UI. Everything is !important and scoped
+ * by class so page rules (`div {…}`, `* {…}`, even with !important) don't reach them. Per-note
+ * values (position, size, colors, font size) are set inline with !important by note-view.js and
+ * take precedence over these defaults.
+ * The note's controls, the resize grip, the formatting toolbar and the outline panel live in
+ * shadow roots; their styles are in ./css/.
+ */
+
+#absolute-note-host.absolute-note-host {
+  all: initial !important;
+  position: fixed !important;
+  inset: 0 !important;
+  pointer-events: none !important;
+  z-index: 2147483647 !important;
+}
+
+.absolute-note.absolute-note {
+  all: initial;
+  position: absolute !important;
+  display: flex !important;
+  flex-direction: column !important;
+  box-sizing: border-box !important;
+  margin: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  width: 280px !important;
+  min-width: 80px !important;
+  min-height: 80px !important;
+  max-width: calc(100vw - 40px) !important;
+  border-radius: 4px !important;
+  box-shadow: 2px 4px 12px rgba(0, 0, 0, 0.25);
+  font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif !important;
+  font-size: 14px !important;
+  font-weight: 400 !important;
+  font-style: normal !important;
+  line-height: 1.5 !important;
+  letter-spacing: normal !important;
+  text-transform: none !important;
+  text-align: left !important;
+  text-shadow: none !important;
+  color: #333 !important;
+  user-select: none !important;
+  touch-action: manipulation !important;
+  transform: translate(-50%, 0) !important;
+  transition: box-shadow 0.3s;
+  opacity: 1;
+  visibility: visible !important;
+  overflow: visible !important;
+  float: none !important;
+  /* Above page content (sticky headers, banners, positioned widgets), below the outline panel. */
+  z-index: 2147483000 !important;
+}
+
+.absolute-note.absolute-note-dragging {
+  cursor: grabbing !important;
+  opacity: 0.85 !important;
+  box-shadow: 4px 8px 24px rgba(0, 0, 0, 0.35) !important;
+  transition: none !important;
+}
+
+.absolute-note.absolute-note--locked {
+  opacity: 0.75 !important;
+  cursor: default !important;
+}
+
+.absolute-note .absolute-note-body {
+  all: initial;
+  display: block !important;
+  flex: 1 1 auto !important;
+  box-sizing: border-box !important;
+  min-height: 40px !important;
+  margin: 0 !important;
+  padding: 8px 10px !important;
+  border: 0 !important;
+  background: none !important;
+  overflow: visible !important;
+  outline: none !important;
+  font: inherit !important;
+  color: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+  text-align: inherit !important;
+  user-select: text !important;
+  overflow-wrap: break-word !important;
+  word-break: break-word !important;
+  white-space: pre-wrap !important;
+  cursor: auto;
+}
+
+.absolute-note .absolute-note-body:empty::before {
+  content: attr(data-placeholder) !important;
+  color: #999 !important;
+  pointer-events: none !important;
+}
+
+.absolute-note .absolute-note-body.absolute-note-body--editing {
+  background: #fff !important;
+  cursor: text !important;
+  box-shadow: inset 0 0 0 2px #1565c0 !important;
+}
+
+/* Note content (sanitized: b, strong, i, em, u, span, p, div, br, ul, ol, li). */
+.absolute-note .absolute-note-body * {
+  font-family: inherit !important;
+  font-size: inherit;
+  line-height: inherit !important;
+  letter-spacing: inherit !important;
+  text-transform: inherit !important;
+  color: inherit;
+  background: none !important;
+  border: 0 !important;
+  box-shadow: none !important;
+  float: none !important;
+  position: static !important;
+}
+.absolute-note .absolute-note-body :is(div, p, span, b, strong, i, em, u) {
+  margin: 0 !important;
+  padding: 0 !important;
+}
+.absolute-note .absolute-note-body :is(div, p) {
+  display: block !important;
+}
+.absolute-note .absolute-note-body span {
+  display: inline !important;
+}
+.absolute-note .absolute-note-body :is(b, strong) {
+  font-weight: bold !important;
+}
+.absolute-note .absolute-note-body :is(i, em) {
+  font-style: italic !important;
+}
+.absolute-note .absolute-note-body u {
+  text-decoration: underline !important;
+}
+.absolute-note .absolute-note-body :is(ul, ol) {
+  display: block !important;
+  margin: 0 !important;
+  padding: 0 0 0 1.5em !important;
+}
+.absolute-note .absolute-note-body ul {
+  list-style: disc outside !important;
+}
+.absolute-note .absolute-note-body ol {
+  list-style: decimal outside !important;
+}
+.absolute-note .absolute-note-body li {
+  display: list-item !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+.absolute-note-notes-hidden .absolute-note.absolute-note,
+.absolute-note-notes-hidden #absolute-note-host.absolute-note-host {
+  display: none !important;
+}
