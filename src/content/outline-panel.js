@@ -1,4 +1,5 @@
 import { getText } from '../shared/i18n.js';
+import { wordsLabel } from '../shared/words-label.js';
 import { renderOutlineList } from '../ui/shared/outline-list.js';
 
 // Side panel listing the page's notes, rendered inside the shadow root of the extension's fixed host.
@@ -34,6 +35,9 @@ export class OutlinePanel {
     this.list = document.createElement('div');
     this.list.className = 'absolute-note-outline-list';
 
+    this.words = document.createElement('div');
+    this.words.className = 'absolute-note-outline-words';
+
     const footer = document.createElement('div');
     footer.className = 'absolute-note-outline-footer';
     this.createBtn = document.createElement('button');
@@ -42,7 +46,7 @@ export class OutlinePanel {
     this.createBtn.addEventListener('click', onCreate);
     footer.appendChild(this.createBtn);
 
-    panel.append(header, this.list, footer);
+    panel.append(header, this.list, this.words, footer);
     host.appendChild(panel);
     this.panel = panel;
     this.notes = [];
@@ -67,6 +71,7 @@ export class OutlinePanel {
     if (!this.visible) return;
     const count = renderOutlineList(this.list, notes, this.listHandlers);
     this.title.textContent = getText('outline_title_count', { count });
+    this.words.textContent = wordsLabel(notes);
   }
 
   applyLang() {

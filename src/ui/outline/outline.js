@@ -2,6 +2,7 @@ import { getText, setLang } from '../../shared/i18n.js';
 import { MSG, NOTE_CMD, listen, sendToRuntime, sendToTab } from '../../shared/messages.js';
 import { loadLang, loadNotes, onLangChanged, onNotesChanged } from '../../shared/store.js';
 import { syncTheme } from '../../shared/theme.js';
+import { wordsLabel } from '../../shared/words-label.js';
 import { renderOutlineList } from '../shared/outline-list.js';
 
 // Detached outline window. It reads the followed page's notes from storage and sends every action
@@ -12,6 +13,7 @@ const els = {
   list: document.getElementById('notes'),
   empty: document.getElementById('empty'),
   lost: document.getElementById('lost'),
+  words: document.getElementById('words'),
   addNote: document.getElementById('add-note'),
 };
 
@@ -31,6 +33,7 @@ function render(notes) {
   els.empty.hidden = notes.length > 0;
   els.empty.textContent = getText('no_notes_empty');
   els.title.textContent = getText('outline_title_count', { count: notes.length });
+  els.words.textContent = wordsLabel(notes);
   renderOutlineList(els.list, notes, {
     onSelect: (id) => command(NOTE_CMD.SCROLL_TO, id),
     onToggleLock: (id) => command(NOTE_CMD.TOGGLE_LOCK, id),
@@ -43,6 +46,7 @@ async function refresh() {
   if (!ctx) {
     els.title.textContent = getText('outline_title');
     els.list.replaceChildren();
+    els.words.textContent = '';
     showLost();
     return;
   }

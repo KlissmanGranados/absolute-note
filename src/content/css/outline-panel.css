@@ -170,6 +170,13 @@
   color: #c00;
 }
 
+.absolute-note-outline-words {
+  padding: 6px 10px 0;
+  font-size: 12px;
+  color: #777;
+  text-align: right;
+}
+
 .absolute-note-outline-footer {
   padding: 10px;
   border-top: 1px solid #eee;
@@ -203,6 +210,9 @@
 }
 :host([data-theme='dark']) .absolute-note-outline-header {
   border-bottom-color: #444;
+}
+:host([data-theme='dark']) .absolute-note-outline-words {
+  color: #aaa;
 }
 :host([data-theme='dark']) .absolute-note-outline-footer {
   border-top-color: #444;

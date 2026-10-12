@@ -51,6 +51,13 @@ listen({
     return { ok: true };
   },
   [MSG.GET_OUTLINE_CONTEXT]: async () => (await getCtx()) || { tabId: null, pageUrl: null },
+  // Top frame reports how many notes its page has: shown as the toolbar icon's badge for that tab.
+  [MSG.NOTES_COUNT]: async (message, sender) => {
+    if (!sender.tab || sender.frameId !== 0) return;
+    const text = message.count > 0 ? String(message.count) : '';
+    await ext().action.setBadgeText({ tabId: sender.tab.id, text });
+    if (text) await ext().action.setBadgeBackgroundColor({ tabId: sender.tab.id, color: '#1565c0' });
+  },
   // SPA navigation in the tab the outline window follows.
   [MSG.PAGE_URL_CHANGED]: async (message, sender) => {
     const ctx = await getCtx();

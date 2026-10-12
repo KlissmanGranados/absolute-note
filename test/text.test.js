@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { countWords, htmlToText } from '../src/shared/text.js';
+import { countWords, htmlToText, totalWords } from '../src/shared/text.js';
 
 describe('countWords', () => {
   it('counts plain words', () => {
@@ -30,5 +30,11 @@ describe('htmlToText', () => {
   it('keeps lines apart and collapses whitespace', () => {
     expect(htmlToText('uno dos tres<div>cuatro</div>')).toBe('uno dos tres cuatro');
     expect(htmlToText('a<br><br>b')).toBe('a b');
+  });
+});
+
+describe('totalWords', () => {
+  it('sums the words of every note', () => {
+    expect(totalWords([{ text: 'one two' }, { text: '<p>three</p>' }, { text: '' }])).toBe(3);
   });
 });

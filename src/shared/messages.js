@@ -11,6 +11,7 @@ export const MSG = {
   OPEN_OUTLINE_WINDOW: 'openOutlineWindow',
   GET_OUTLINE_CONTEXT: 'getOutlineContext',
   PAGE_URL_CHANGED: 'pageUrlChanged',
+  NOTES_COUNT: 'notesCount',
   // background → outline window
   OUTLINE_CONTEXT_CHANGED: 'outlineContextChanged',
 };

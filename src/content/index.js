@@ -87,6 +87,7 @@ class ContentApp {
     const [notes, ui] = await Promise.all([store.loadNotes(pageUrl), store.loadPageUiState(pageUrl)]);
     if (generation !== this.generation) return;
     this.storedNoteCount = notes.length;
+    this.reportCount(notes.length);
     document.documentElement.classList.toggle(HIDDEN_CLASS, ui.notesHidden);
     // Pages without notes stay idle: no rendering, no DOM observers.
     if (!notes.length && !ui.outlineVisible) return;
@@ -105,6 +106,10 @@ class ContentApp {
       await waitForDomSettle(NAVIGATION_SETTLE_MAX_MS);
       if (generation === this.generation) controller.checkContainer();
     }
+  }
+
+  reportCount(count) {
+    if (IS_TOP_FRAME) sendToRuntime({ type: MSG.NOTES_COUNT, count });
   }
 
   syncUrl() {
@@ -135,6 +140,7 @@ class ContentApp {
   }
 
   onNotesChanged() {
+    this.reportCount(this.controller.size);
     if (this.outline) this.outline.render(this.controller.list());
     this.updateActivity();
   }

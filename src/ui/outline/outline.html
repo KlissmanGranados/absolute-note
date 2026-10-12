@@ -74,6 +74,7 @@
       .absolute-note-outline-edit:hover,
       .absolute-note-outline-del:hover { background: var(--an-icon-hover); color: var(--an-accent); }
       .absolute-note-outline-del:hover { color: var(--an-danger); }
+      .words { padding: 6px 10px 0; font-size: 12px; color: var(--an-muted); text-align: right; flex-shrink: 0; }
       .add-wrap { padding: 10px; border-top: 1px solid var(--an-border); flex-shrink: 0; }
       .add {
         width: 100%; padding: 8px 12px; border: none; border-radius: 4px;
@@ -89,6 +90,7 @@
     <div id="empty" hidden></div>
     <div id="lost" hidden></div>
     <div class="notes" id="notes"></div>
+    <div class="words" id="words"></div>
     <div class="add-wrap">
       <button type="button" class="add" id="add-note"></button>
     </div>

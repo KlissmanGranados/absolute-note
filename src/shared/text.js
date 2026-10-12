@@ -16,3 +16,8 @@ export function countWords(html) {
   const text = htmlToText(html);
   return text ? text.split(' ').length : 0;
 }
+
+// Words across every note of a page.
+export function totalWords(notes) {
+  return notes.reduce((sum, n) => sum + countWords(n.text), 0);
+}
