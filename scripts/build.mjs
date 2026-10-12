@@ -24,7 +24,9 @@ const STATIC_FILES = {
   'popup.html': 'src/ui/popup/popup.html',
   'outline.html': 'src/ui/outline/outline.html',
   'data.html': 'src/ui/data/data.html',
-  'icon.png': 'src/icon.png',
+  'icon-16.png': 'src/icon-16.png',
+  'icon-48.png': 'src/icon-48.png',
+  'icon-128.png': 'src/icon-128.png',
   LICENSE: 'LICENSE',
 };
 
