@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectNotes, filterPages, isImportPayload, mergeImport, pickPages } from '../src/shared/backup.js';
+import { collectNotes, filterPages, isImportPayload, mergeImport, pickPages, renameKeys } from '../src/shared/backup.js';
 import { SCHEMA_VERSION } from '../src/shared/constants.js';
 import { planMigration, runMigrations } from '../src/shared/migrate.js';
 import { sanitizeHtml } from '../src/shared/sanitize.js';
@@ -132,5 +132,31 @@ describe('filterPages / pickPages', () => {
     const picked = pickPages(data, new Set(['absolute_note_https://a.com/x', 'missing']));
     expect(Object.keys(picked)).toEqual(['absolute_note_https://a.com/x']);
     expect(mergeImport({}, picked, sanitizeHtml).added).toBe(1);
+  });
+});
+
+describe('renameKeys', () => {
+  const k = (u) => 'absolute_note_' + u;
+  it('moves notes and per-page state, skips non-matching', () => {
+    const all = {
+      [k('https://s.com/manga/814/chapter/18')]: [note('1')],
+      [k('https://s.com/other')]: [note('2')],
+      'absolute_note_outline_https://s.com/manga/814/chapter/18': 'visible',
+    };
+    const r = renameKeys(all, Object.keys(all).filter((x) => x.includes('/814/') && !x.includes('outline')).concat(k('https://s.com/other')), '/814/', '/820/');
+    expect(r.moved).toBe(1);
+    expect(r.skipped).toBe(1);
+    expect(r.set[k('https://s.com/manga/820/chapter/18')]).toEqual([note('1')]);
+    expect(r.set['absolute_note_outline_https://s.com/manga/820/chapter/18']).toBe('visible');
+    expect(r.remove).toEqual([k('https://s.com/manga/814/chapter/18'), 'absolute_note_outline_https://s.com/manga/814/chapter/18']);
+  });
+  it('merges into an existing page without duplicating ids', () => {
+    const all = { [k('https://s.com/a')]: [note('1'), note('2')], [k('https://s.com/b')]: [note('1')] };
+    const r = renameKeys(all, [k('https://s.com/a')], '/a', '/b');
+    expect(r.merged).toBe(1);
+    expect(r.set[k('https://s.com/b')].map((n) => n.id)).toEqual(['1', '2']);
+  });
+  it('does nothing with empty find', () => {
+    expect(renameKeys({}, [k('https://s.com/a')], '', 'x').moved).toBe(0);
   });
 });

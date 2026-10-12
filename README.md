@@ -151,6 +151,7 @@ For a tag that already exists, run the workflow from the Actions tab (*Run workf
 
 - From the extension popup, click **"Data"** to open the data dashboard:
   - **Search** pages by URL, and **select all / deselect all**
+  - **Replace in URLs**: find/replace text in the URL of the selected pages to move their notes when a site changes its URLs (merges without duplicating)
   - **Export**: downloads a JSON file with only the selected pages' notes
   - **Import**: loads a JSON file and merges notes (without duplicating existing IDs); open tabs show imported notes right away
 - Exports from earlier versions can be imported

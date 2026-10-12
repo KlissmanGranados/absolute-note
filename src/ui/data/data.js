@@ -1,4 +1,4 @@
-import { collectNotes, filterPages, isImportPayload, mergeImport, pickPages } from '../../shared/backup.js';
+import { collectNotes, filterPages, isImportPayload, mergeImport, pickPages, renameKeys } from '../../shared/backup.js';
 import { getText, setLang } from '../../shared/i18n.js';
 import { pageUrlFromNotesKey } from '../../shared/constants.js';
 import { sanitizeHtml } from '../../shared/sanitize.js';
@@ -73,6 +73,7 @@ function updateCount() {
   $('count').textContent = getText('selected_count', { count: selected.size, total: Object.keys(pages).length });
   $('btn-export').disabled = selected.size === 0;
   $('btn-delete').disabled = selected.size === 0;
+  $('btn-replace').disabled = selected.size === 0 || !$('replace-find').value;
 }
 
 async function refresh() {
@@ -143,6 +144,34 @@ $('btn-delete').addEventListener('click', async () => {
     showSpinner(false);
   }
 });
+$('replace-find').addEventListener('input', updateCount);
+$('btn-replace').addEventListener('click', async () => {
+  showSpinner(true);
+  showStatus('', false);
+  try {
+    const all = await loadAll();
+    const find = $('replace-find').value;
+    const replace = $('replace-with').value;
+    const keys = [...selected].filter((k) => k in all);
+    const r = renameKeys(all, keys, find, replace);
+    if (!r.moved) {
+      showStatus(getText('replace_none'), false);
+      return;
+    }
+    const first = keys.find((k) => pageUrlFromNotesKey(k).includes(find));
+    const to = pageUrlFromNotesKey(first).split(find).join(replace);
+    const merged = r.merged ? getText('replace_merged', { count: r.merged }) : '';
+    if (!window.confirm(getText('replace_confirm', { count: r.moved, from: pageUrlFromNotesKey(first), to, merged }))) return;
+    await applyChanges({ set: r.set, remove: r.remove });
+    selected.clear();
+    await refresh();
+    showStatus(getText('replace_ok', { count: r.moved }), false);
+  } catch (e) {
+    showStatus(errorText(e), true);
+  } finally {
+    showSpinner(false);
+  }
+});
 $('search').addEventListener('input', render);
 $('btn-select-all').addEventListener('click', () => {
   for (const k of visibleKeys()) selected.add(k);
@@ -179,6 +208,9 @@ $('file-input').addEventListener('change', async () => {
   $('lbl-title').textContent = getText('data');
   $('lbl-export').textContent = getText('export_selected');
   $('lbl-delete').textContent = getText('delete_selected');
+  $('replace-find').placeholder = getText('replace_find');
+  $('replace-with').placeholder = getText('replace_with');
+  $('lbl-replace').textContent = getText('replace_selected');
   $('search').placeholder = getText('search_url');
   $('btn-select-all').textContent = getText('select_all');
   $('btn-deselect-all').textContent = getText('deselect_all');
