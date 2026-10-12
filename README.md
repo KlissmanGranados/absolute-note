@@ -149,8 +149,9 @@ For a tag that already exists, run the workflow from the Actions tab (*Run workf
 
 ### Export / Import
 
-- From the extension popup, click **"Recovery"** to open the recovery page:
-  - **Export**: downloads a JSON file with all notes from all pages
+- From the extension popup, click **"Data"** to open the data dashboard:
+  - **Search** pages by URL, and **select all / deselect all**
+  - **Export**: downloads a JSON file with only the selected pages' notes
   - **Import**: loads a JSON file and merges notes (without duplicating existing IDs); open tabs show imported notes right away
 - Exports from earlier versions can be imported
 - Note content is sanitized on import

@@ -7,7 +7,7 @@
     :root {
       color-scheme: light;
       --bg: #f5f5f5; --surface: #fff; --text: #333; --title: #444; --border: #ddd;
-      --hover: #e3f2fd; --hover-border: #90caf9; --active: #bbdefb; --card-shadow: var(--card-shadow);
+      --hover: #e3f2fd; --hover-border: #90caf9; --active: #bbdefb; --card-shadow: rgba(0, 0, 0, 0.15);
     }
     :root[data-theme="dark"] {
       color-scheme: dark;
@@ -27,7 +27,7 @@
     }
     .card {
       width: 100%;
-      max-width: 420px;
+      max-width: 560px;
       background: var(--surface);
       border-radius: 10px;
       padding: 24px;
@@ -76,6 +76,28 @@
       border-radius: 50%;
       animation: spin 0.8s linear infinite;
     }
+    .btn:disabled { opacity: 0.5; cursor: default; background: var(--surface); border-color: var(--border); }
+    .search {
+      width: 100%; padding: 10px 12px; margin-bottom: 10px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--surface); color: var(--text); font-size: 14px;
+    }
+    .toolbar { display: flex; gap: 8px; align-items: center; margin-bottom: 8px; }
+    .toolbar .btn { width: auto; padding: 6px 10px; font-size: 13px; }
+    .count { margin-left: auto; font-size: 13px; color: var(--title); }
+    .list {
+      list-style: none; max-height: 280px; overflow-y: auto;
+      border: 1px solid var(--border); border-radius: 8px; margin-bottom: 12px;
+    }
+    .list li { border-bottom: 1px solid var(--border); }
+    .list li:last-child { border-bottom: 0; }
+    .list label { display: flex; gap: 10px; align-items: center; padding: 8px 10px; cursor: pointer; }
+    .list label:hover { background: var(--hover); }
+    .list .url { flex: 1; font-size: 13px; word-break: break-all; }
+    .list .n { font-size: 12px; opacity: 0.7; }
+    .btn-danger { color: #c00; }
+    .list .url a { color: inherit; }
+    .empty { padding: 14px; text-align: center; font-size: 13px; opacity: 0.7; }
     @keyframes spin { to { transform: rotate(360deg); } }
     .status {
       font-size: 13px;
@@ -86,12 +108,23 @@
 </head>
 <body>
   <div class="card">
-    <h1 id="lbl-title">Recovery</h1>
+    <h1 id="lbl-title">Data</h1>
 
     <section>
+      <input type="search" id="search" class="search" autocomplete="off">
+      <div class="toolbar">
+        <button class="btn" id="btn-select-all" type="button"></button>
+        <button class="btn" id="btn-deselect-all" type="button"></button>
+        <span class="count" id="count"></span>
+      </div>
+      <ul class="list" id="list"></ul>
       <button class="btn" id="btn-export" type="button">
         <span class="ico">&darr;</span>
-        <span class="label" id="lbl-export">Export notes (JSON)</span>
+        <span class="label" id="lbl-export">Export selected (JSON)</span>
+      </button>
+      <button class="btn btn-danger" id="btn-delete" type="button" style="margin-top: 8px">
+        <span class="ico">&#10005;</span>
+        <span class="label" id="lbl-delete">Delete selected</span>
       </button>
     </section>
 
@@ -109,6 +142,6 @@
     </div>
   </div>
 
-  <script src="recovery.js"></script>
+  <script src="data.js"></script>
 </body>
 </html>

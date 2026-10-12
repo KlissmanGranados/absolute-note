@@ -15,7 +15,7 @@ const ENTRY_POINTS = {
   background: 'src/background/index.js',
   popup: 'src/ui/popup/popup.js',
   outline: 'src/ui/outline/outline.js',
-  recovery: 'src/ui/recovery/recovery.js',
+  data: 'src/ui/data/data.js',
 };
 
 // dist path → source path
@@ -23,7 +23,7 @@ const STATIC_FILES = {
   'styles.css': 'src/content/styles.css',
   'popup.html': 'src/ui/popup/popup.html',
   'outline.html': 'src/ui/outline/outline.html',
-  'recovery.html': 'src/ui/recovery/recovery.html',
+  'data.html': 'src/ui/data/data.html',
   'icon.png': 'src/icon.png',
   LICENSE: 'LICENSE',
 };

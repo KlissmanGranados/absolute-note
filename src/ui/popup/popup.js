@@ -31,7 +31,7 @@ function updateButtons() {
 function applyLang() {
   $('lbl-add-note').textContent = getText('add_note');
   $('lbl-outline').textContent = getText('view_outline');
-  $('lbl-recovery').textContent = getText('recovery');
+  $('lbl-data').textContent = getText('data');
   $('lbl-lang').textContent = getText('lang_label');
   $('lbl-customize').textContent = getText('customize_notes');
   $('lbl-prefs-title').textContent = getText('customize_notes');
@@ -99,8 +99,8 @@ $('btn-prefs-save').addEventListener('click', async () => {
   setTimeout(() => showView('main'), 800);
 });
 
-$('btn-recovery').addEventListener('click', () => {
-  ext().tabs.create({ url: ext().runtime.getURL('recovery.html') });
+$('btn-data').addEventListener('click', () => {
+  ext().tabs.create({ url: ext().runtime.getURL('data.html') });
   window.close();
 });
 

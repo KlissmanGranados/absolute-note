@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { collectNotes, isImportPayload, mergeImport } from '../src/shared/backup.js';
+import { collectNotes, filterPages, isImportPayload, mergeImport, pickPages } from '../src/shared/backup.js';
 import { SCHEMA_VERSION } from '../src/shared/constants.js';
 import { planMigration, runMigrations } from '../src/shared/migrate.js';
 import { sanitizeHtml } from '../src/shared/sanitize.js';
@@ -115,5 +115,22 @@ describe('runMigrations', () => {
     fake.data['absolute_note_https://a.com/#again'] = [note('2')];
     await runMigrations();
     expect(fake.data['absolute_note_https://a.com/#again']).toEqual([note('2')]);
+  });
+});
+
+describe('filterPages / pickPages', () => {
+  const data = {
+    'absolute_note_https://a.com/x': [note('1')],
+    'absolute_note_https://B.org/': [note('2')],
+  };
+  it('filters by url, case-insensitive', () => {
+    expect(filterPages(data, 'b.ORG')).toEqual(['absolute_note_https://B.org/']);
+    expect(filterPages(data, '')).toHaveLength(2);
+    expect(filterPages(data, 'zzz')).toEqual([]);
+  });
+  it('picks only the selected keys and round-trips through mergeImport', () => {
+    const picked = pickPages(data, new Set(['absolute_note_https://a.com/x', 'missing']));
+    expect(Object.keys(picked)).toEqual(['absolute_note_https://a.com/x']);
+    expect(mergeImport({}, picked, sanitizeHtml).added).toBe(1);
   });
 });

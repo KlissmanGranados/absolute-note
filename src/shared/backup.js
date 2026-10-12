@@ -16,6 +16,20 @@ export function collectNotes(all) {
   return { data, pages, count };
 }
 
+// Pages (storage keys) whose URL contains the query, case-insensitive.
+export function filterPages(data, query) {
+  const q = (query || '').trim().toLowerCase();
+  const keys = Object.keys(data || {});
+  return q ? keys.filter((k) => pageUrlFromNotesKey(k).toLowerCase().includes(q)) : keys;
+}
+
+// Subset of an export payload restricted to the given keys.
+export function pickPages(data, keys) {
+  const out = {};
+  for (const key of keys) if (key in data) out[key] = data[key];
+  return out;
+}
+
 export function isImportPayload(value) {
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
